@@ -17,9 +17,13 @@ import {
   coreServices,
   createBackendModule,
 } from '@backstage/backend-plugin-api';
-import { catalogProcessingExtensionPoint } from '@backstage/plugin-catalog-node/alpha';
+import {
+  catalogProcessingExtensionPoint,
+  catalogLocationsExtensionPoint,
+} from '@backstage/plugin-catalog-node/alpha';
 
 import { ModelCatalogResourceEntityProvider } from './providers';
+import { RHDHRHOAIReaderProcessor } from './processors';
 
 export const catalogModuleModelCatalogResourceEntityProvider =
   createBackendModule({
@@ -46,6 +50,45 @@ export const catalogModuleModelCatalogResourceEntityProvider =
               },
             ),
           );
+        },
+      });
+    },
+  });
+
+export const catalogModuleRHDHRHOAIReaderProcessor = createBackendModule({
+  pluginId: 'catalog',
+  moduleId: 'rhdh-rhoai-bridge-reader-processor',
+  register(env) {
+    env.registerInit({
+      deps: {
+        catalog: catalogProcessingExtensionPoint,
+        reader: coreServices.urlReader,
+      },
+      async init({ catalog, reader }) {
+        catalog.addProcessor(new RHDHRHOAIReaderProcessor(reader));
+      },
+    });
+  },
+});
+
+// so a `CatalogProcessor` does not need to also provide a `CatalogLocationsExtensionPoint` if it only supports imports of locations
+// from the app-config.yaml on startup, but if you want to dynamically add Locations via the catalog's REST API (like what the UI does for import
+// of catalog-info.yaml from git repos) then you need to also provide a `CatalogLocationsExtension` point to add your type to the default list of 'url' and 'file';
+// fwiw in examining the core Backstage code, none of the default `CatalogProcessors` bother to also provide a CatalogLocationsExtension`; however,
+// we want to allow our RHDH bridge to import new locations dynamically
+export const catalogModuleRHDHRHOAILocationsExtensionPoint =
+  createBackendModule({
+    pluginId: 'catalog',
+    moduleId: 'rhdh-rhoai-bridge-location-extension-point',
+    register(env) {
+      env.registerInit({
+        deps: {
+          catalog: catalogLocationsExtensionPoint,
+        },
+        async init({ catalog }) {
+          // setAllowedLocationTypes does not add to the list but replaces it, so we preserve the default options of 'file' and 'url'
+          const allowedLocationTypes = ['file', 'url', 'rhdh-rhoai-bridge'];
+          catalog.setAllowedLocationTypes(allowedLocationTypes);
         },
       });
     },

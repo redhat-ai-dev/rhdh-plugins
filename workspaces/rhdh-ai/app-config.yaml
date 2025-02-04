@@ -12,6 +12,12 @@ backend:
   # auth:
   #   keys:
   #     - secret: ${BACKEND_SECRET}
+  auth:
+    externalAccess:
+    - type: static
+      options:
+        token: '${RHDH_TOKEN}'
+        subject: admin-curl-access
   baseUrl: http://localhost:7007
   listen:
     port: 7007
@@ -31,6 +37,11 @@ backend:
     client: better-sqlite3
     connection: ':memory:'
   # workingDirectory: /tmp # Use this to configure a working directory for the scaffolder, defaults to the OS temp-dir
+  reading:
+    allow:
+      - host: example.com
+      - host: '*.mozilla.org'
+      - host: '${RHDH_BRIDGE_HOST}'
 
 integrations:
   github:
