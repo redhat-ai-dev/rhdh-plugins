@@ -39,10 +39,6 @@ function readModelCatalogApiEntityConfig(
   config: Config,
 ): ModelCatalogConfig {
   const baseUrl = config.getString('baseUrl');
-  const authorization = config.getString('authorization');
-  const name = config.getString('name');
-  const system = config.getOptionalString('system');
-  const owner = config.getOptionalString('owner') ?? 'unknown';
 
   const schedule = config.has('schedule')
     ? readSchedulerServiceTaskScheduleDefinitionFromConfig(
@@ -53,10 +49,6 @@ function readModelCatalogApiEntityConfig(
   return {
     id,
     baseUrl,
-    authorization,
-    name,
-    system,
-    owner,
     schedule,
   };
 }

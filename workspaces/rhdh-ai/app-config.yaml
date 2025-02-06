@@ -91,6 +91,5 @@ catalog:
   providers:
     modelCatalog:
       ollama:
-        baseUrl: '${RHDH_AI_MODEL_SERVER}'
-        authorization: '${RHDH_AI_AUTH_TOKEN}'
+        baseUrl: '${RHDH_AI_BRIDGE_SERVER}'
         name: 'Ollama Model Service'
