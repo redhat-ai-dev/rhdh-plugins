@@ -18,6 +18,7 @@ import { createBackend } from '@backstage/backend-defaults';
 import {
   catalogModuleRHDHRHOAIReaderProcessor,
   catalogModuleRHDHRHOAILocationsExtensionPoint,
+  catalogModuleRHDHRHOAIEntityProvider,
 } from '@red-hat-developer-hub/backstage-plugin-catalog-backend-module-rhdh-ai';
 
 const backend = createBackend();
@@ -69,4 +70,5 @@ backend.add(
 );
 backend.add(catalogModuleRHDHRHOAILocationsExtensionPoint);
 backend.add(catalogModuleRHDHRHOAIReaderProcessor);
+backend.add(catalogModuleRHDHRHOAIEntityProvider);
 backend.start();
