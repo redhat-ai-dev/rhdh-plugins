@@ -24,8 +24,6 @@ export interface Config {
            * ModelCatalogConfig
            */
           baseUrl: string;
-          /** @visibility secret */
-          authorization: string;
           name?: string;
           system?: string;
           owner?: string;

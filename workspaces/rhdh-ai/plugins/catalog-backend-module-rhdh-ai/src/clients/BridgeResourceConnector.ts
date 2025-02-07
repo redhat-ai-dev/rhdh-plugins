@@ -13,8 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { ModelList } from './types';
+import { Entity } from '@backstage/catalog-model';
 
+import YAML from 'yaml';
+
+// listModels will list the models from an OpenAI compatible endpoint
+/*
 export async function listModels(
   baseUrl: string,
   access_token: string,
@@ -32,5 +36,24 @@ export async function listModels(
   }
 
   const data = await res.json();
+  return data;
+}*/
+
+export async function fetchCatalogEntities(baseUrl: string): Promise<Entity[]> {
+  // ToDo: Discover catalog-info endpoint?
+  const res = await fetch(`${baseUrl}/mnist/v1/catalog-info.yaml`, {
+    method: 'GET',
+  });
+
+  if (!res.ok) {
+    throw new Error(res.statusText);
+  }
+
+  // ToDo: Look at seeing if we can use the parser provided by the CatalogProcessorProvider package
+  const data = await res
+    .blob()
+    .then(blob => blob.text())
+    .then(yamlStr => YAML.parseAllDocuments(yamlStr))
+    .then(yamlData => yamlData.map(item => item.toJS()));
   return data;
 }

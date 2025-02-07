@@ -19,18 +19,14 @@ import type {
   SchedulerServiceTaskRunner,
 } from '@backstage/backend-plugin-api';
 import {
-  ANNOTATION_LOCATION,
-  ANNOTATION_ORIGIN_LOCATION,
-  ComponentEntity,
-  Entity,
-  ResourceEntity,
-} from '@backstage/catalog-model';
-import {
   EntityProvider,
   EntityProviderConnection,
 } from '@backstage/plugin-catalog-node';
-import { listModels } from '../clients/OpenAIResourceConnector';
-import type { ModelList } from '../clients/types';
+import {
+  ANNOTATION_LOCATION,
+  ANNOTATION_ORIGIN_LOCATION,
+} from '@backstage/catalog-model';
+import { fetchCatalogEntities } from '../clients/BridgeResourceConnector';
 import { ModelCatalogConfig } from './types';
 import { readModelCatalogApiEntityConfigs } from './config';
 import type { Config } from '@backstage/config';
@@ -41,10 +37,6 @@ import { InputError, isError } from '@backstage/errors';
 export class ModelCatalogResourceEntityProvider implements EntityProvider {
   private readonly env: string;
   private readonly baseUrl: string;
-  private readonly authorization: string;
-  private readonly name: string;
-  private readonly owner: string;
-  private readonly system: string;
   private readonly logger: LoggerService;
   private readonly scheduleFn: () => Promise<void>;
   private connection?: EntityProviderConnection;
@@ -91,10 +83,6 @@ export class ModelCatalogResourceEntityProvider implements EntityProvider {
   ) {
     this.env = config.id;
     this.baseUrl = config.baseUrl;
-    this.authorization = config.authorization;
-    this.name = config.name;
-    this.owner = config.owner;
-    this.system = config.system ?? '';
     this.logger = logger.child({
       target: this.getProviderName(),
     });
@@ -152,10 +140,24 @@ export class ModelCatalogResourceEntityProvider implements EntityProvider {
     this.logger.info(
       `Discovering ResourceEntities from Model Server ${this.baseUrl}`,
     );
-    const modelList = await listModels(this.baseUrl, this.authorization);
 
     /** [5]: Convert the fetched model and model server data into RHDH catalog entities */
-    const modelServerName: string = this.convertModeServerName(this.name);
+    const entityList = await fetchCatalogEntities(this.baseUrl);
+    entityList.forEach(entity => {
+      if (entity.metadata.annotations === undefined) {
+        entity.metadata.annotations = {
+          [ANNOTATION_LOCATION]: this.getProviderName(),
+          [ANNOTATION_ORIGIN_LOCATION]: this.getProviderName(),
+        };
+      } else {
+        entity.metadata.annotations[ANNOTATION_LOCATION] =
+          this.getProviderName();
+        entity.metadata.annotations[ANNOTATION_ORIGIN_LOCATION] =
+          this.getProviderName();
+      }
+    });
+
+    /* const modelServerName: string = this.convertModeServerName(this.name);
     let entities: Entity[] = [];
     const modelServerEntity: ComponentEntity =
       this.buildComponentEntityFromModelEndpoint(modelServerName);
@@ -166,14 +168,14 @@ export class ModelCatalogResourceEntityProvider implements EntityProvider {
     /** [6]: Add/update the catalog entities that correspond to the models */
     await this.connection.applyMutation({
       type: 'full',
-      entities: entities.map(entity => ({
+      entities: entityList.map(entity => ({
         entity,
         locationKey: this.getProviderName(),
       })),
     });
   }
 
-  private convertModelNameToEntityName(modelName: string): string {
+  /* private convertModelNameToEntityName(modelName: string): string {
     return modelName.replaceAll(/\:/g, '-');
   }
 
@@ -245,5 +247,5 @@ export class ModelCatalogResourceEntityProvider implements EntityProvider {
     };
 
     return modelServerComponent;
-  }
+  }*/
 }
