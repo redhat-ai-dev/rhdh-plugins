@@ -41,7 +41,7 @@ export async function listModels(
 
 export async function fetchCatalogEntities(baseUrl: string): Promise<Entity[]> {
   // ToDo: Discover catalog-info endpoint?
-  const res = await fetch(`${baseUrl}/mnist/v1/catalog-info.yaml`, {
+  const res = await fetch(`${baseUrl}`, {
     method: 'GET',
   });
 

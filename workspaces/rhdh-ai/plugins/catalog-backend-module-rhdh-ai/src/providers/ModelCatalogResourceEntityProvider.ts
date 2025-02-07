@@ -21,11 +21,15 @@ import type {
 import {
   EntityProvider,
   EntityProviderConnection,
+  locationSpecToLocationEntity,
 } from '@backstage/plugin-catalog-node';
 import {
   ANNOTATION_LOCATION,
   ANNOTATION_ORIGIN_LOCATION,
+  // LocationEntity,
+  LocationEntityV1alpha1,
 } from '@backstage/catalog-model';
+
 import { fetchCatalogEntities } from '../clients/BridgeResourceConnector';
 import { ModelCatalogConfig } from './types';
 import { readModelCatalogApiEntityConfigs } from './config';
@@ -157,6 +161,34 @@ export class ModelCatalogResourceEntityProvider implements EntityProvider {
       }
     });
 
+    // ATTEMPT ONE
+    // create a location with the URL set to this.baseUrl and the type of 'rhdh-rhoai-bridge'
+    // to correspond to the location annotations of the entities created; this may help reconciling with the bridge later on pushing updates via
+    // the catalog rest API.
+    // const thisLocation: LocationEntity = {
+    //   apiVersion: 'backstage.io/v1beta1',
+    //   kind: 'Location',
+    //   metadata: {
+    //     name: `ModelCatalogResourceEntityProvider_${this.env}`,
+    //     annotations: {
+    //       [ANNOTATION_LOCATION]: this.getProviderName(),
+    //       [ANNOTATION_ORIGIN_LOCATION]: this.getProviderName(),
+    //     },
+    //   },
+    //   spec: {
+    //     type: 'rhdh-rhoai-bridge',
+    //     target: this.baseUrl,
+    //   },
+    // };
+    // entityList.push(thisLocation);
+
+    // ATTEMPT TWO at creating a location
+    // const entities = this.getLocationEntity(this.baseUrl)
+    // await this.connection.applyMutation({
+    //   type: 'full',
+    //   entities,
+    // });
+
     /* const modelServerName: string = this.convertModeServerName(this.name);
     let entities: Entity[] = [];
     const modelServerEntity: ComponentEntity =
@@ -173,6 +205,29 @@ export class ModelCatalogResourceEntityProvider implements EntityProvider {
         locationKey: this.getProviderName(),
       })),
     });
+  }
+
+  private getEntityLocationRef(entity: LocationEntityV1alpha1): string {
+    const ref = entity.metadata.annotations?.[ANNOTATION_LOCATION];
+    if (!ref) {
+      throw new InputError(
+        `Entity '${entity.metadata.name}' does not have the annotation ${ANNOTATION_LOCATION}`,
+      );
+    }
+    return ref;
+  }
+
+  private getLocationEntity(
+    urlStr: string,
+  ): { entity: LocationEntityV1alpha1; locationKey: string }[] {
+    const entity = locationSpecToLocationEntity({
+      location: {
+        type: 'rhdh-rhoai-bridge',
+        target: urlStr,
+      },
+    });
+    const locationKey = this.getEntityLocationRef(entity);
+    return [{ entity, locationKey }];
   }
 
   /* private convertModelNameToEntityName(modelName: string): string {

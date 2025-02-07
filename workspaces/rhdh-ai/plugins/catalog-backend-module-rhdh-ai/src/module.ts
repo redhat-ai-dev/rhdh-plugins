@@ -24,6 +24,7 @@ import {
 
 import { ModelCatalogResourceEntityProvider } from './providers';
 import { RHDHRHOAIReaderProcessor } from './processors';
+import { RHDHRHOAIEntityProvider } from './providers/RHDHRHOAIEntityProvider';
 
 export const catalogModuleModelCatalogResourceEntityProvider =
   createBackendModule({
@@ -63,9 +64,13 @@ export const catalogModuleRHDHRHOAIReaderProcessor = createBackendModule({
       deps: {
         catalog: catalogProcessingExtensionPoint,
         reader: coreServices.urlReader,
+        config: coreServices.rootConfig,
+        logger: coreServices.logger,
       },
-      async init({ catalog, reader }) {
-        catalog.addProcessor(new RHDHRHOAIReaderProcessor(reader));
+      async init({ catalog, reader, config, logger }) {
+        catalog.addProcessor(
+          new RHDHRHOAIReaderProcessor(reader, config, logger),
+        );
       },
     });
   },
@@ -93,3 +98,35 @@ export const catalogModuleRHDHRHOAILocationsExtensionPoint =
       });
     },
   });
+
+export const catalogModuleRHDHRHOAIEntityProvider = createBackendModule({
+  pluginId: 'catalog',
+  moduleId: 'rhdh-rhoai-bridge-entiry-provider',
+  register(env) {
+    env.registerInit({
+      deps: {
+        catalog: catalogProcessingExtensionPoint,
+        config: coreServices.rootConfig,
+        discovery: coreServices.discovery,
+        logger: coreServices.logger,
+        scheduler: coreServices.scheduler,
+        reader: coreServices.urlReader,
+      },
+      async init({ catalog, config, logger, scheduler, discovery, reader }) {
+        const runner = scheduler.createScheduledTaskRunner({
+          frequency: { seconds: 30 },
+          timeout: { minutes: 3 },
+        });
+        catalog.addEntityProvider(
+          new RHDHRHOAIEntityProvider(
+            discovery,
+            config,
+            logger,
+            runner,
+            reader,
+          ),
+        );
+      },
+    });
+  },
+});

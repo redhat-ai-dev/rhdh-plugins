@@ -41,7 +41,8 @@ backend:
     allow:
       - host: example.com
       - host: '*.mozilla.org'
-      - host: '${RHDH_BRIDGE_HOST}'
+      - host: '*.openshift.com'
+      - host: '*.openshiftapps.com'
 
 integrations:
   github:
