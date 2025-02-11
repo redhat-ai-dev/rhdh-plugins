@@ -20,13 +20,31 @@ import {
   CatalogProcessorParser,
   CatalogProcessorResult,
 } from '@backstage/plugin-catalog-node';
-import { UrlReaderService } from '@backstage/backend-plugin-api';
+import {
+  LoggerService,
+  RootConfigService,
+  UrlReaderService,
+} from '@backstage/backend-plugin-api';
 
 import { LocationSpec } from '@backstage/plugin-catalog-common';
 
+import { ModelCatalogConfig } from '../providers/types';
+import { readModelCatalogApiEntityConfigs } from '../providers/config';
+
 // A processor that reads from the RHDH RHOAI Bridge
 export class RHDHRHOAIReaderProcessor implements CatalogProcessor {
-  constructor(private readonly reader: UrlReaderService) {}
+  private readonly reader: UrlReaderService;
+  private readonly modelCatalogConfigs: ModelCatalogConfig[];
+  private readonly logger: LoggerService;
+  constructor(
+    reader: UrlReaderService,
+    config: RootConfigService,
+    logger: LoggerService,
+  ) {
+    this.reader = reader;
+    this.modelCatalogConfigs = readModelCatalogApiEntityConfigs(config);
+    this.logger = logger;
+  }
 
   getProcessorName(): string {
     return 'RHDHRHOAIReaderProcessor';
@@ -41,10 +59,27 @@ export class RHDHRHOAIReaderProcessor implements CatalogProcessor {
     // Pick a custom location type string. A location will be
     // registered later with this type.
     if (location.type !== 'rhdh-rhoai-bridge') {
+      this.logger.info(
+        `skipping non bridge location ${location.type}:${location.target}`,
+      );
       return false;
     }
 
     try {
+      // as part of the life cycles of entities we will get called
+      // when ModelCatalogResourceEntityProvider gets call on startup; leveraging
+      // the config to bypass processing this location to avoid detection of conflicting
+      // entity refs by the core catalog code
+      for (const config of this.modelCatalogConfigs) {
+        if (config.baseUrl === location.target) {
+          this.logger.info(
+            `RHDHRHOAIReaderProcessor skipping bridge location ${location.type}:${location.target} because it is registered for startup processing`,
+          );
+          // still return true to avoid warning from catalog about no processor being able to handle; we are just deferring to ModelCatalog entity provider
+          return true;
+        }
+      }
+
       // Use the builtin reader facility to grab data from the
       // API. If you prefer, you can just use plain fetch here
       // (from the node-fetch package), or any other method of

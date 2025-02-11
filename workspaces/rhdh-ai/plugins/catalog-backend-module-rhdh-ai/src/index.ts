@@ -24,6 +24,7 @@
 export { catalogModuleModelCatalogResourceEntityProvider as default } from './module';
 export { catalogModuleRHDHRHOAIReaderProcessor } from './module';
 export { catalogModuleRHDHRHOAILocationsExtensionPoint } from './module';
+export { catalogModuleRHDHRHOAIEntityProvider } from './module';
 export * from './providers';
 export * from './processors';
 export * from './clients';
