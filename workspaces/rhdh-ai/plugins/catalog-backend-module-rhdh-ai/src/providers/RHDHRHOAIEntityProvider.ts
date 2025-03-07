@@ -21,7 +21,11 @@ import type {
   SchedulerServiceTaskRunner,
   UrlReaderService,
 } from '@backstage/backend-plugin-api';
-import { LocationEntity } from '@backstage/catalog-model';
+import {
+  ANNOTATION_LOCATION,
+  ANNOTATION_ORIGIN_LOCATION,
+  LocationEntity,
+} from '@backstage/catalog-model';
 import {
   EntityProvider,
   EntityProviderConnection,
@@ -181,6 +185,19 @@ export class RHDHRHOAIEntityProvider implements EntityProvider {
                 const locType = loc.spec.type;
                 const locTarget = loc.spec.target;
                 const locKey = `${locType}:${locTarget}`;
+                if (resultEntity.entity.metadata.annotations === undefined) {
+                  resultEntity.entity.metadata.annotations = {
+                    [ANNOTATION_LOCATION]: locKey,
+                    [ANNOTATION_ORIGIN_LOCATION]: locKey,
+                  };
+                } else {
+                  resultEntity.entity.metadata.annotations[
+                    ANNOTATION_LOCATION
+                  ] = locKey;
+                  resultEntity.entity.metadata.annotations[
+                    ANNOTATION_ORIGIN_LOCATION
+                  ] = locKey;
+                }
                 const deferredEntity = {
                   entity: resultEntity.entity,
                   locationKey: locKey,

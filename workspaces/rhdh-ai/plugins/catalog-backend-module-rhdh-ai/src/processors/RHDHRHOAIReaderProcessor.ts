@@ -30,6 +30,10 @@ import { LocationSpec } from '@backstage/plugin-catalog-common';
 
 import { ModelCatalogConfig } from '../providers/types';
 import { readModelCatalogApiEntityConfigs } from '../providers/config';
+import {
+  ANNOTATION_LOCATION,
+  ANNOTATION_ORIGIN_LOCATION,
+} from '@backstage/catalog-model';
 
 // A processor that reads from the RHDH RHOAI Bridge
 export class RHDHRHOAIReaderProcessor implements CatalogProcessor {
@@ -96,6 +100,21 @@ export class RHDHRHOAIReaderProcessor implements CatalogProcessor {
           data: item.data,
           location: { type: location.type, target: item.url },
         })) {
+          if (parseResult.type === 'entity') {
+            const locKey = `${location.type}:${location.target}`;
+            if (parseResult.entity.metadata.annotations === undefined) {
+              parseResult.entity.metadata.annotations = {
+                [ANNOTATION_LOCATION]: locKey,
+                [ANNOTATION_ORIGIN_LOCATION]: locKey,
+              };
+            } else {
+              parseResult.entity.metadata.annotations[ANNOTATION_LOCATION] =
+                locKey;
+              parseResult.entity.metadata.annotations[
+                ANNOTATION_ORIGIN_LOCATION
+              ] = locKey;
+            }
+          }
           parseResults.push(parseResult);
           emit(parseResult);
         }
