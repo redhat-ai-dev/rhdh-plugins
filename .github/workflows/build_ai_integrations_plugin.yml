@@ -39,7 +39,6 @@ jobs:
           docker push quay.io/redhat-ai-dev/ai-integrations-rhdh:latest
       - name: Tag with git commit sha and push to Quay.io
         run: |
-          docker push quay.io/redhat-ai-dev/ai-integrations-rhdh:latest
           GIT_SHA=$(git rev-parse HEAD)
           docker tag quay.io/redhat-ai-dev/ai-integrations-rhdh:latest quay.io/redhat-ai-dev/ai-integrations-rhdh:${GIT_SHA}
           docker push quay.io/redhat-ai-dev/ai-integrations-rhdh:${GIT_SHA}
