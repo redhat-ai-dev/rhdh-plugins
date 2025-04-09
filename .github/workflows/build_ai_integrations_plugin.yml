@@ -30,9 +30,10 @@ jobs:
           registry: quay.io
       - name: Build ai-integrations plugin
         run: |
-          cd workspace/ai-integration
+          cd workspace/ai-integrations
           yarn install
           npx --yes @janus-idp/cli@latest package package-dynamic-plugins --use-docker --tag quay.io/redhat-ai-dev/ai-integration-rhdh:latest
       - name: Push ai-integrations plugin to Quay.io
         run: |
           docker push quay.io/redhat-ai-dev/ai-integration-rhdh:latest
+          docker tag quay.io/redhat-ai-dev/ai-integration-rhdh:latest quay.io/redhat-ai-dev/ai-integrations-rhdh:latest
