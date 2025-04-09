@@ -1,0 +1,38 @@
+name: Publish Container Images
+
+on:
+  push:
+    branches: [ buildplugin ]
+  schedule:
+    - cron: 0 5 * * *
+
+jobs:
+  publish-container-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout redhat-developer/rhdh-plugins
+        uses: actions/checkout@latest
+        with:
+          repository: redhat-developer/rhdh-plugins
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/ # Needed for auth
+
+      - name: Login to Quay.io
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+          registry: quay.io
+      - name: Build ai-integrations plugin
+        run: |
+          cd workspace/ai-integration
+          yarn install
+          npx --yes @janus-idp/cli@latest package package-dynamic-plugins --use-docker --tag quay.io/redhat-ai-dev/ai-integration-rhdh:latest
+      - name: Push ai-integrations plugin to Quay.io
+        run: |
+          docker push quay.io/redhat-ai-dev/ai-integration-rhdh:latest
