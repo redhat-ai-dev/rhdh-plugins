@@ -14,50 +14,63 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-
 import { Link, StatusPending } from '@backstage/core-components';
 
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import { makeStyles } from '@mui/styles';
+import Typography from '@mui/material/Typography';
 
 import GitAltIcon from '../components/GitAltIcon';
+import GitLabIcon from '../components/GitLabIcon';
 
-const useStyles = makeStyles(() => ({
-  urlLink: {
-    paddingLeft: '5px',
-    display: 'inline-flex',
-  },
-  openInNew: { paddingBottom: '5px', paddingTop: '3px' },
-}));
-
-export const WaitingForPR = ({ url }: { url: string }) => {
-  const styles = useStyles();
+export const WaitingForPR = ({
+  url,
+  isApprovalToolGitlab,
+}: {
+  url: string;
+  isApprovalToolGitlab: boolean;
+}) => {
   return (
-    <span
+    <Typography
+      component="span"
       style={{
         display: 'flex',
       }}
     >
       <StatusPending />
-      <GitAltIcon
-        style={{
-          height: '1.4em',
-          width: '2em',
-          paddingRight: '5px',
-        }}
-      />
-      <span style={{ color: '#757575' }}>Waiting for approval</span>
+      {isApprovalToolGitlab ? (
+        <GitLabIcon
+          style={{
+            height: '1.4em',
+            width: '2em',
+            paddingRight: '5px',
+            marginTop: '2px',
+          }}
+        />
+      ) : (
+        <GitAltIcon
+          style={{
+            height: '1.4em',
+            width: '2em',
+            paddingRight: '5px',
+          }}
+        />
+      )}
+      <Typography component="span" style={{ color: '#757575' }}>
+        Waiting for approval
+      </Typography>
       {url && (
         <Link
           to={url}
           data-testid="pull request url"
-          className={styles.urlLink}
+          style={{
+            paddingLeft: '5px',
+            display: 'inline-flex',
+          }}
         >
           PR
-          <OpenInNewIcon className={styles.openInNew} />
+          <OpenInNewIcon sx={{ paddingBottom: '5px', paddingTop: '3px' }} />
         </Link>
       )}
-    </span>
+    </Typography>
   );
 };

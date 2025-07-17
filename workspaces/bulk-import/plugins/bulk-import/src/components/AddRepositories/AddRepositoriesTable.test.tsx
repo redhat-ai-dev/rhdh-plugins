@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { useAsync } from 'react-use';
 
@@ -53,6 +52,7 @@ jest.mock('react-use', () => ({
 
 jest.mock('../../hooks', () => ({
   useRepositories: jest.fn(),
+  useNumberOfApprovalTools: jest.fn(() => ({ numberOfApprovalTools: 1 })),
 }));
 
 class MockBulkImportApi {

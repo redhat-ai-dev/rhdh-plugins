@@ -14,53 +14,7 @@
  * limitations under the License.
  */
 
-/**
- * Slot
- *
- * @public
- */
-export enum Slot {
-  /**
-   * Positions the global header component at the start of the global header
-   */
-  HEADER_START = 'header-start',
-  /**
-   * Positions the global header component at the end of the global header
-   */
-  HEADER_END = 'header-end',
-}
-
-/**
- * Component
- *
- * @public
- */
-export enum ComponentType {
-  /**
-   * Global Header Component dropdown button
-   */
-  DROPDOWN_BUTTON = 'dropdown_button',
-  /**
-   * Global Header Component icon button
-   */
-  ICON_BUTTON = 'icon_button',
-  /**
-   * Global Header Component link
-   */
-  LINK = 'link',
-  /**
-   * Global Header Component list
-   */
-  LIST = 'list',
-  /**
-   * Global Header Component search
-   */
-  SEARCH = 'search',
-  /**
-   * Global Header Component logout
-   */
-  LOGOUT = 'logout',
-}
+import type { ComponentType, CSSProperties } from 'react';
 
 /**
  * Global Header Config
@@ -68,11 +22,7 @@ export enum ComponentType {
  * @public
  */
 export interface GlobalHeaderComponentMountPointConfig {
-  type: ComponentType;
-  key?: string;
-  slot?: Slot;
   priority?: number;
-  size?: 'small' | 'medium' | 'large';
 }
 
 /**
@@ -81,7 +31,6 @@ export interface GlobalHeaderComponentMountPointConfig {
  * @public
  */
 export interface CreateDropdownMountPointConfig {
-  type: ComponentType;
   priority?: number;
   props?: Record<string, any>;
 }
@@ -91,7 +40,34 @@ export interface CreateDropdownMountPointConfig {
  * @public
  */
 export interface ProfileDropdownMountPointConfig {
-  type: ComponentType;
+  priority?: number;
+  icon?: string;
+  title?: string;
+  link?: string;
+  props?: Record<string, any>;
+}
+/**
+ * Help Dropdown Config
+ *
+ * @public
+ */
+export interface HelpDropdownMountPointConfig {
+  priority?: number;
+  icon?: string;
+  title?: string;
+  link?: string;
+  style?: CSSProperties;
+  props?: Record<string, any>;
+}
+/**
+ * Application Launcher Dropdown Config
+ *
+ * @public
+ */
+export interface ApplicationLauncherDropdownMountPointConfig {
+  section?: string;
+  sectionLink?: string;
+  sectionLinkLabel?: string;
   priority?: number;
   icon?: string;
   title?: string;
@@ -105,9 +81,12 @@ export interface ProfileDropdownMountPointConfig {
  * @public
  */
 export interface GlobalHeaderComponentMountPoint {
-  Component: React.ComponentType;
+  Component: ComponentType<{
+    layout?: CSSProperties;
+  }>;
   config?: GlobalHeaderComponentMountPointConfig & {
     props?: Record<string, any>;
+    layout?: CSSProperties;
   };
 }
 
@@ -117,7 +96,7 @@ export interface GlobalHeaderComponentMountPoint {
  * @public
  */
 export interface CreateDropdownMountPoint {
-  Component: React.ComponentType;
+  Component: ComponentType;
   config?: CreateDropdownMountPointConfig & {
     props?: Record<string, any>;
   };
@@ -129,8 +108,22 @@ export interface CreateDropdownMountPoint {
  * @public
  */
 export interface ProfileDropdownMountPoint {
-  Component: React.ComponentType;
+  Component: ComponentType;
   config?: ProfileDropdownMountPointConfig & {
+    props?: Record<string, any>;
+  };
+}
+
+export interface HelpDropdownMountPoint {
+  Component: ComponentType<any>;
+  config?: HelpDropdownMountPointConfig & {
+    props?: Record<string, any>;
+  };
+}
+
+export interface ApplicationLauncherDropdownMountPoint {
+  Component: ComponentType<any>;
+  config?: ApplicationLauncherDropdownMountPointConfig & {
     props?: Record<string, any>;
   };
 }
@@ -147,6 +140,8 @@ export interface ScalprumState {
         'global.header/component': GlobalHeaderComponentMountPoint[];
         'global.header/create': CreateDropdownMountPoint[];
         'global.header/profile': ProfileDropdownMountPoint[];
+        'global.header/application-launcher': ApplicationLauncherDropdownMountPoint[];
+        'global.header/help': HelpDropdownMountPoint[];
       };
     };
   };

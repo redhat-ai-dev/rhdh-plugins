@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Backstage Authors
+ * Copyright Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,12 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import type { JsonObject } from '@backstage/types';
 
 import type { Specification } from '@severlessworkflow/sdk-typescript';
 import type { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 
-import type { ProcessInstance, ProcessInstanceStateValues } from './models';
+import type { ProcessInstanceStateValues } from './models';
 
 type Id<T> = { [P in keyof T]: T[P] };
 
@@ -93,11 +94,6 @@ export interface WorkflowExecutionResponse {
   id: string;
 }
 
-export enum WorkflowCategory {
-  ASSESSMENT = 'assessment',
-  INFRASTRUCTURE = 'infrastructure',
-}
-
 export interface WorkflowOverview {
   workflowId: string;
   format: WorkflowFormat;
@@ -105,9 +101,9 @@ export interface WorkflowOverview {
   lastRunId?: string;
   lastTriggeredMs?: number;
   lastRunStatus?: ProcessInstanceStateValues;
-  category?: string;
   avgDurationMs?: number;
   description?: string;
+  isAvailable?: boolean;
 }
 
 export interface WorkflowInfo {
@@ -132,9 +128,4 @@ export interface Node {
   name?: string;
   uniqueId?: string;
   nodeDefinitionId?: string;
-}
-
-export interface AssessedProcessInstance {
-  instance: ProcessInstance;
-  assessedBy?: ProcessInstance;
 }

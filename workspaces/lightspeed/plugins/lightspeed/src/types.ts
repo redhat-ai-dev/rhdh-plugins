@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+import { SourcesCardProps } from '@patternfly/chatbot';
+import { AlertProps } from '@patternfly/react-core';
+
 export type Conversations = {
   [key: string]: {
     user: string;
@@ -22,29 +25,69 @@ export type Conversations = {
     loading: boolean;
     timestamp: string;
     botTimestamp: string;
+    error?: AlertProps;
   };
 };
 
+export type ReferencedDocument = {
+  doc_title: string;
+  doc_url: string;
+  doc_description?: string;
+};
+
+export type ReferencedDocuments = ReferencedDocument[];
 export interface BaseMessage {
-  lc: number;
+  name: string;
   type: string;
-  id: string[];
-  kwargs: {
-    content: string;
-    response_metadata: {
-      model?: string;
-      created_at: number;
-      role: string;
-    };
-    additional_kwargs: {
-      [_key: string]: any;
-    };
+  id: number;
+  content: string;
+  response_metadata: {
+    model?: string;
+    created_at: number;
+    role?: string;
   };
+  sources?: SourcesCardProps;
+  additional_kwargs: {
+    referenced_documents?: ReferencedDocuments;
+    [_key: string]: any;
+  };
+  error?: AlertProps;
 }
 export type ConversationSummary = {
   conversation_id: string;
-  lastMessageTimestamp: number;
-  summary: string;
+  last_message_timestamp: number;
+  topic_summary: string;
+};
+
+export enum SupportedFileType {
+  JSON = 'application/json',
+  YAML = 'application/x-yaml',
+  TEXT = 'text/plain',
+  XML = 'text/xml',
+}
+export interface FileContent {
+  content: string;
+  type: string;
+  name: string;
+}
+
+export type Attachment = {
+  attachment_type: string;
+  content_type: string;
+  content: string;
 };
 
 export type ConversationList = ConversationSummary[];
+
+export type SamplePrompts = {
+  title: string;
+  message: string;
+}[];
+
+export type CaptureFeedback = {
+  conversation_id: string;
+  user_question: string;
+  llm_response: string;
+  user_feedback: string;
+  sentiment: number;
+};

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
+import type { ChangeEvent, MouseEvent } from 'react';
 
 import Checkbox from '@mui/material/Checkbox';
 import TableCell from '@mui/material/TableCell';
@@ -24,8 +24,8 @@ import TableSortLabel from '@mui/material/TableSortLabel';
 
 import { Order } from '../../types';
 import { RepositoriesListColumns } from '../Repositories/RepositoriesListColumns';
-import { OrganizationsColumnHeader } from './OrganizationsColumnHeader';
-import { RepositoriesColumnHeader } from './RepositoriesColumnHeader';
+import { getOrganizationsColumnHeader } from './OrganizationsColumnHeader';
+import { getRepositoriesColumnHeader } from './RepositoriesColumnHeader';
 import { ReposSelectDrawerColumnHeader } from './ReposSelectDrawerColumnHeader';
 
 export const RepositoriesHeader = ({
@@ -39,9 +39,10 @@ export const RepositoriesHeader = ({
   showOrganizations,
   showImportJobs,
   isRepoSelectDrawer = false,
+  isApprovalToolGitlab = false,
 }: {
   numSelected?: number;
-  onRequestSort: (event: React.MouseEvent<unknown>, property: any) => void;
+  onRequestSort: (event: MouseEvent<unknown>, property: any) => void;
   order: Order;
   orderBy: string | undefined;
   rowCount?: number;
@@ -49,16 +50,16 @@ export const RepositoriesHeader = ({
   showOrganizations?: boolean;
   showImportJobs?: boolean;
   isRepoSelectDrawer?: boolean;
-  onSelectAllClick?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  isApprovalToolGitlab?: boolean;
+  onSelectAllClick?: (event: ChangeEvent<HTMLInputElement>) => void;
 }) => {
-  const createSortHandler =
-    (property: any) => (event: React.MouseEvent<unknown>) => {
-      onRequestSort(event, property);
-    };
+  const createSortHandler = (property: any) => (event: MouseEvent<unknown>) => {
+    onRequestSort(event, property);
+  };
 
   const getColumnHeader = () => {
     if (showOrganizations) {
-      return OrganizationsColumnHeader;
+      return getOrganizationsColumnHeader(isApprovalToolGitlab);
     }
     if (showImportJobs) {
       return RepositoriesListColumns;
@@ -66,7 +67,7 @@ export const RepositoriesHeader = ({
     if (isRepoSelectDrawer) {
       return ReposSelectDrawerColumnHeader;
     }
-    return RepositoriesColumnHeader;
+    return getRepositoriesColumnHeader(isApprovalToolGitlab);
   };
 
   const tableCellStyle = () => {

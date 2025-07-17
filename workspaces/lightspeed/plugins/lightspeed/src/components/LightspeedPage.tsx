@@ -17,7 +17,7 @@
 import React from 'react';
 import { useAsync } from 'react-use';
 
-import { Content, Page } from '@backstage/core-components';
+import { Content, Header, Page } from '@backstage/core-components';
 import { identityApiRef, useApi } from '@backstage/core-plugin-api';
 
 import { createStyles, makeStyles, useTheme } from '@material-ui/core/styles';
@@ -26,6 +26,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { useAllModels } from '../hooks/useAllModels';
 import { useLightspeedViewPermission } from '../hooks/useLightspeedViewPermission';
 import queryClient from '../utils/queryClient';
+import FileAttachmentContextProvider from './AttachmentContext';
 import { LightspeedChat } from './LightSpeedChat';
 import PermissionRequiredState from './PermissionRequiredState';
 
@@ -82,20 +83,27 @@ const LightspeedPageInner = () => {
 
   return (
     <Page themeId="tool">
+      <Header
+        title="Lightspeed"
+        style={{ display: 'none' }}
+        pageTitleOverride="Developer Lightspeed"
+      />
       <Content className={classes.container}>
         {!hasViewAccess ? (
           <PermissionRequiredState />
         ) : (
-          <LightspeedChat
-            selectedModel={selectedModel}
-            handleSelectedModel={item => {
-              setSelectedModel(item);
-            }}
-            models={modelsItems}
-            userName={profile?.displayName}
-            avatar={profile?.picture}
-            profileLoading={profileLoading}
-          />
+          <FileAttachmentContextProvider>
+            <LightspeedChat
+              selectedModel={selectedModel}
+              handleSelectedModel={item => {
+                setSelectedModel(item);
+              }}
+              models={modelsItems}
+              userName={profile?.displayName}
+              avatar={profile?.picture}
+              profileLoading={profileLoading}
+            />
+          </FileAttachmentContextProvider>
         )}
       </Content>
     </Page>

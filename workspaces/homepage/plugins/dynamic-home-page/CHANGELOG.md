@@ -1,5 +1,82 @@
 # @red-hat-developer-hub/backstage-plugin-dynamic-home-page
 
+## 1.5.0
+
+### Minor Changes
+
+- 6681eb9: Bump to backstage version 1.39.1
+
+### Patch Changes
+
+- 4face49: Updated dependency `@red-hat-developer-hub/backstage-plugin-theme` to `^0.9.0`.
+
+## 1.4.2
+
+### Patch Changes
+
+- 002f7c9: Updated dependency `@testing-library/user-event` to `14.6.1`.
+- 593ed08: Updated dependency `@mui/icons-material` to `5.17.1`.
+  Updated dependency `@mui/material` to `5.17.1`.
+  Updated dependency `@mui/styles` to `5.17.1`.
+  Updated dependency `@red-hat-developer-hub/backstage-plugin-theme` to `^0.8.0`.
+
+## 1.4.1
+
+### Patch Changes
+
+- 70fe697: Updated dependency `@scalprum/react-core` to `0.9.5`.
+  Updated dependency `tss-react` to `4.9.18`.
+  Updated dependency `react-router-dom` to `6.30.1`.
+
+## 1.4.0
+
+### Minor Changes
+
+- 8915566: added new homepage cards - explore, catalog and templates
+
+## 1.3.3
+
+### Patch Changes
+
+- 93e16a8: Correcting the home page title for `Recent Visits` and `Top Visits` on initial load and page reload.
+- f691b55: Updated dependency `tss-react` to `4.9.17`.
+
+## 1.3.2
+
+### Patch Changes
+
+- a9e5f32: Updated dependency `@red-hat-developer-hub/backstage-plugin-theme` to `^0.6.0`.
+
+## 1.3.1
+
+### Patch Changes
+
+- a5b2c24: Updated dependency `tss-react` to `4.9.16`.
+- 00db670: Updated dependency `react-grid-layout` to `1.5.1`.
+
+## 1.3.0
+
+### Minor Changes
+
+- d602553: Backstage version bump to v1.36.1
+
+## 1.2.0
+
+### Minor Changes
+
+- a75760c: add the ability to let users customize their homepage grid layout using the [Backstage Customizable homepage component](https://github.com/backstage/backstage/blob/master/plugins/home/README.md#customizable-home-page).
+
+  This change does not affect the original `HomePage` as it introduces this new capability through new components. So, the user has a choice of choosing its HomePage implementation via the plugin configuration (dynamic routes).
+
+### Patch Changes
+
+- 1a25bba: Updated dependency `react-router-dom` to `6.30.0`.
+- 3dce00f: Updated dependency `react-router-dom` to `6.29.0`.
+- 680ede5: Updated dependency `@mui/icons-material` to `5.16.14`.
+  Updated dependency `@mui/styles` to `5.16.14`.
+  Updated dependency `@mui/material` to `5.16.14`.
+  Updated dependency `@mui/styled-engine` to `5.16.14`.
+
 ## 1.1.0
 
 ### Minor Changes

@@ -14,77 +14,176 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
-import HeaderDropdownComponent from './HeaderDropdownComponent';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
+import { useUserProfile } from '@backstage/plugin-user-settings';
+import { useApi } from '@backstage/core-plugin-api';
+import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import { parseEntityRef, UserEntity } from '@backstage/catalog-model';
 import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
 import KeyboardArrowDownOutlinedIcon from '@mui/icons-material/KeyboardArrowDownOutlined';
+import Avatar from '@mui/material/Avatar';
 import Typography from '@mui/material/Typography';
-import {
-  identityApiRef,
-  useApi,
-  ProfileInfo,
-} from '@backstage/core-plugin-api';
+import { lighten } from '@mui/material/styles';
+import Box from '@mui/material/Box';
+
+import { MenuItemConfig, MenuSection } from './MenuSection';
+import { HeaderDropdownComponent } from './HeaderDropdownComponent';
 import { useProfileDropdownMountPoints } from '../../hooks/useProfileDropdownMountPoints';
-import { ComponentType } from '../../types';
-import MenuSection from './MenuSection';
+import { useDropdownManager } from '../../hooks';
 
 /**
  * @public
- * ProfileDropdown component properties
+ * Props for Profile Dropdown
  */
 export interface ProfileDropdownProps {
-  handleMenu: (event: React.MouseEvent<HTMLElement>) => void;
-  anchorEl: HTMLElement | null;
-  setAnchorEl: React.Dispatch<React.SetStateAction<HTMLElement | null>>;
+  layout?: CSSProperties;
 }
 
-export const ProfileDropdown = ({
-  handleMenu,
-  anchorEl,
-  setAnchorEl,
-}: ProfileDropdownProps) => {
-  const identityApi = useApi(identityApiRef);
-  const [user, setUser] = useState<ProfileInfo>();
+export const ProfileDropdown = ({ layout }: ProfileDropdownProps) => {
+  const { anchorEl, handleOpen, handleClose } = useDropdownManager();
+  const [user, setUser] = useState<string | null>();
+  const [profileLink, setProfileLink] = useState<string | null>();
+  const {
+    displayName,
+    backstageIdentity,
+    profile,
+    loading: profileLoading,
+  } = useUserProfile();
+  const catalogApi = useApi(catalogApiRef);
+
   const profileDropdownMountPoints = useProfileDropdownMountPoints();
 
+  const headerRef = useRef<HTMLElement | null>(null);
+  const [bgColor, setBgColor] = useState('#3C3F42');
+
   useEffect(() => {
-    const fetchUser = async () => {
-      const userProfile = await identityApi.getProfileInfo();
-      setUser(userProfile);
+    if (headerRef.current) {
+      const computedStyle = window.getComputedStyle(headerRef.current);
+      const baseColor = computedStyle.backgroundColor;
+      setBgColor(lighten(baseColor, 0.2));
+    }
+  }, []);
+
+  useEffect(() => {
+    const container = document.getElementById('global-header');
+    if (container) {
+      const computedStyle = window.getComputedStyle(container);
+      const baseColor = computedStyle.backgroundColor;
+      setBgColor(lighten(baseColor, 0.2));
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchUserEntity = async () => {
+      let userProfile;
+      let profileUrl: string | null = null;
+
+      try {
+        if (backstageIdentity?.userEntityRef) {
+          const { namespace = 'default', name } = parseEntityRef(
+            backstageIdentity.userEntityRef,
+          );
+          profileUrl = `/catalog/${namespace}/user/${name}`;
+
+          userProfile = (await catalogApi.getEntityByRef(
+            backstageIdentity.userEntityRef,
+          )) as unknown as UserEntity;
+          setUser(
+            userProfile?.spec?.profile?.displayName ??
+              userProfile?.metadata?.title,
+          );
+          setProfileLink(profileUrl);
+        } else {
+          setUser(null);
+          setProfileLink(null);
+        }
+      } catch (_err) {
+        setUser(null);
+        setProfileLink(null);
+      }
     };
 
-    fetchUser();
-  }, [identityApi]);
+    fetchUserEntity();
+  }, [backstageIdentity, catalogApi]);
 
   const menuItems = useMemo(() => {
     return (profileDropdownMountPoints ?? [])
-      .map(mp => ({
-        Component: mp.Component,
-        type: mp.config?.type ?? ComponentType.LINK,
-        icon: mp.config?.props?.icon ?? '',
-        label: mp.config?.props?.title ?? '',
-        link: mp.config?.props?.link ?? '',
-        priority: mp.config?.priority ?? 0,
-      }))
+      .map(mp => {
+        const {
+          title = '',
+          icon = '',
+          link: staticLink = '',
+        } = mp.config?.props ?? {};
+        const isMyProfile = title.toLowerCase() === 'my profile';
+        const link = isMyProfile ? profileLink ?? '' : staticLink;
+
+        if (!link && title) {
+          return null;
+        }
+
+        return {
+          Component: mp.Component,
+          label: title,
+          link,
+          priority: mp.config?.priority ?? 0,
+          ...(icon && { icon }),
+        };
+      })
+      .filter((item: MenuItemConfig) => item !== null)
       .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
-  }, [profileDropdownMountPoints]);
+  }, [profileDropdownMountPoints, profileLink]);
+
+  if (menuItems.length === 0) {
+    return null;
+  }
+
+  const profileDisplayName = () => {
+    const name = user ?? displayName;
+    const regex = /^[^:/]+:[^/]+\/[^/]+$/;
+    if (regex.test(name)) {
+      return name
+        .charAt(name.indexOf('/') + 1)
+        .toLocaleUpperCase('en-US')
+        .concat(name.substring(name.indexOf('/') + 2));
+    }
+    return name;
+  };
 
   return (
     <HeaderDropdownComponent
       buttonContent={
-        <>
-          <AccountCircleOutlinedIcon fontSize="small" sx={{ mx: 1 }} />
-          <Typography variant="body2" sx={{ fontWeight: 500, mx: 1 }}>
-            {user?.displayName ?? 'Guest'}
-          </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', ...layout }}>
+          {!profileLoading && (
+            <>
+              {profile.picture ? (
+                <Avatar
+                  src={profile.picture}
+                  sx={{ mr: 2, height: '32px', width: '32px' }}
+                  alt="Profile picture"
+                />
+              ) : (
+                <AccountCircleOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
+              )}
+              <Typography
+                variant="body2"
+                sx={{
+                  display: { xs: 'none', md: 'block' },
+                  fontWeight: 500,
+                  mr: '1rem',
+                }}
+              >
+                {profileDisplayName()}
+              </Typography>
+            </>
+          )}
           <KeyboardArrowDownOutlinedIcon
             sx={{
-              marginLeft: '1rem',
-              bgcolor: '#383838',
+              bgcolor: bgColor,
               borderRadius: '25%',
             }}
           />
-        </>
+        </Box>
       }
       buttonProps={{
         color: 'inherit',
@@ -93,17 +192,11 @@ export const ProfileDropdown = ({
           alignItems: 'center',
         },
       }}
-      buttonClick={handleMenu}
+      onOpen={handleOpen}
+      onClose={handleClose}
       anchorEl={anchorEl}
-      setAnchorEl={setAnchorEl}
     >
-      <MenuSection
-        hideDivider
-        items={menuItems}
-        handleClose={() => setAnchorEl(null)}
-      />
+      <MenuSection hideDivider items={menuItems} handleClose={handleClose} />
     </HeaderDropdownComponent>
   );
 };
-
-export default ProfileDropdown;

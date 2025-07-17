@@ -2018,6 +2018,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@backstage/types@npm:^1.2.1":
+  version: 1.2.1
+  resolution: "@backstage/types@npm:1.2.1"
+  checksum: 4cf2f2fd5ca6e5f4716c5511ca00cdc8502387976a796098fec9cfd2aea6c6d077c13a46da43b1a7ff1c05fd7b208e7a45b51bbbd024319e9e7a053254fd2222
+  languageName: node
+  linkType: hard
+
 "@bcoe/v8-coverage@npm:^0.2.3":
   version: 0.2.3
   resolution: "@bcoe/v8-coverage@npm:0.2.3"
@@ -3862,9 +3869,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@red-hat-developer-hub/cli@portal:./workspaces/repo-tools/packages/cli::locator=%40redhat-developer%2Frhdh-plugins%40workspace%3A.":
+"@red-hat-developer-hub/rhdh-repo-tools@portal:./workspaces/repo-tools/packages/cli::locator=%40redhat-developer%2Frhdh-plugins%40workspace%3A.":
   version: 0.0.0-use.local
-  resolution: "@red-hat-developer-hub/cli@portal:./workspaces/repo-tools/packages/cli::locator=%40redhat-developer%2Frhdh-plugins%40workspace%3A."
+  resolution: "@red-hat-developer-hub/rhdh-repo-tools@portal:./workspaces/repo-tools/packages/cli::locator=%40redhat-developer%2Frhdh-plugins%40workspace%3A."
   dependencies:
     "@backstage/cli": ^0.26.11
     "@backstage/cli-node": ^0.2.7
@@ -3879,7 +3886,7 @@ __metadata:
     semver: ^7.6.0
     ts-morph: ^23.0.0
   bin:
-    rhdh-cli: bin/rhdh-cli
+    rhdh-repo-tools: bin/rhdh-repo-tools
   languageName: node
   linkType: soft
 
@@ -3889,11 +3896,12 @@ __metadata:
   dependencies:
     "@backstage/cli": ^0.27.0
     "@backstage/cli-node": ^0.2.2
+    "@backstage/types": ^1.2.1
     "@changesets/parse": ^0.4.0
     "@ianvs/prettier-plugin-sort-imports": ^4.4.0
     "@manypkg/get-packages": ^2.2.2
     "@octokit/rest": ^20.1.1
-    "@red-hat-developer-hub/cli": "portal:./workspaces/repo-tools/packages/cli"
+    "@red-hat-developer-hub/rhdh-repo-tools": "portal:./workspaces/repo-tools/packages/cli"
     "@spotify/eslint-plugin": ^15.0.0
     "@spotify/prettier-config": ^15.0.0
     array-to-table: ^1.0.1
@@ -3904,6 +3912,7 @@ __metadata:
     fs-extra: 11.3.0
     husky: ^9.0.11
     lint-staged: ^15.2.2
+    lodash: ^4.17.21
     lodash.escaperegexp: ^4.1.2
     node-fetch: ^2.6.7
     prettier: ^3.4.2
@@ -5942,13 +5951,13 @@ __metadata:
   linkType: hard
 
 "axios@npm:^1.6.7, axios@npm:^1.7.4":
-  version: 1.7.7
-  resolution: "axios@npm:1.7.7"
+  version: 1.8.2
+  resolution: "axios@npm:1.8.2"
   dependencies:
     follow-redirects: ^1.15.6
     form-data: ^4.0.0
     proxy-from-env: ^1.1.0
-  checksum: 882d4fe0ec694a07c7f5c1f68205eb6dc5a62aecdb632cc7a4a3d0985188ce3030e0b277e1a8260ac3f194d314ae342117660a151fabffdc5081ca0b5a8b47fe
+  checksum: c47a43b79a058aa9e53a65bec9ade35c9f6e76a3999c795a79a2d205fb5f803fd4245497a0209a9727cbbe4f558791dd852ad2c168c5fc030259c11598ed8fd7
   languageName: node
   linkType: hard
 
@@ -10077,8 +10086,8 @@ __metadata:
   linkType: hard
 
 "http-proxy-middleware@npm:^2.0.3":
-  version: 2.0.7
-  resolution: "http-proxy-middleware@npm:2.0.7"
+  version: 2.0.9
+  resolution: "http-proxy-middleware@npm:2.0.9"
   dependencies:
     "@types/http-proxy": ^1.17.8
     http-proxy: ^1.18.1
@@ -10090,7 +10099,7 @@ __metadata:
   peerDependenciesMeta:
     "@types/express":
       optional: true
-  checksum: 18caa21145917aa1054740353916e8f03f5a3a93bede9106f1f44d84f7b174df17af1c72bf5fade5cc440c2058ee813f47cbb2bdd6ae6874af1cf33e0ac575f3
+  checksum: 0ea88609b9c13fa03b89f8e6b85bd5c537027ec6990005dd81a7fbb3e73fcf8d6a6e3db2b57b1c6cddbcda80965704584dc6291d0e721b2700198c4e59ee0d0b
   languageName: node
   linkType: hard
 

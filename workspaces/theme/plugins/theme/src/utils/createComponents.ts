@@ -41,6 +41,7 @@ export type Components = UnifiedThemeOptions['components'] & {
   BackstageTableToolbar?: Component;
   CatalogReactUserListPicker?: Component;
   PrivateTabIndicator?: Component;
+  RHDHPageWithoutFixHeight?: Component;
 };
 
 export const createComponents = (themeConfig: ThemeConfig): Components => {
@@ -95,9 +96,15 @@ export const createComponents = (themeConfig: ThemeConfig): Components => {
   if (options.buttons !== 'mui') {
     components.MuiTypography = {
       styleOverrides: {
-        button: {
-          textTransform: 'none',
-          fontWeight: 'bold',
+        root: {
+          fontFamily: redHatFonts.text,
+          fontWeight: 'normal',
+          letterSpacing: '0.01em',
+          // This is required to override the default MUI styles
+          // that set the `font-weight` to `500` for the `h1` element.
+          '&.MuiTypography-h1': {
+            fontWeight: 'normal',
+          },
         },
       },
     };
@@ -131,6 +138,12 @@ export const createComponents = (themeConfig: ThemeConfig): Components => {
             height: 0,
           },
         },
+        rounded: {
+          '& > :last-child': {
+            borderBottomLeftRadius: 4,
+            borderBottomRightRadius: 4,
+          },
+        },
         elevation0: noElevationStyle,
       },
     };
@@ -156,6 +169,19 @@ export const createComponents = (themeConfig: ThemeConfig): Components => {
     });
   }
 
+  // MUI AppBar
+  if (options.appBar !== 'mui') {
+    components.MuiAppBar = {
+      styleOverrides: {
+        root: {
+          backgroundColor: general.appBarBackgroundColor,
+          backgroundImage: general.appBarBackgroundImage,
+          outline: 'none',
+        },
+      },
+    };
+  }
+
   // MUI buttons
   // Don't disableRipple for MuiButtonBase as it will affect all the buttons
   // and we need to ensure that the buttons have a right touch and focus styling.
@@ -167,12 +193,14 @@ export const createComponents = (themeConfig: ThemeConfig): Components => {
       styleOverrides: {
         root: {
           textTransform: 'none',
-          border: '0',
           borderRadius: '3px',
+          fontWeight: 'normal',
         },
         contained: {
+          border: '0',
+          borderRadius: '99em',
           boxShadow: 'none',
-          '&:hover': {
+          '&:hover, &:focus-visible': {
             border: '0',
             boxShadow: 'none',
           },
@@ -181,6 +209,7 @@ export const createComponents = (themeConfig: ThemeConfig): Components => {
           },
         },
         containedPrimary: {
+          borderRadius: '99em',
           '&:focus-visible': {
             boxShadow: `inset 0 0 0 1px ${rhdhPrimary.focusVisibleBorder}`,
             outline: `${rhdhPrimary.focusVisibleBorder} solid 1px`,
@@ -201,19 +230,25 @@ export const createComponents = (themeConfig: ThemeConfig): Components => {
           },
         },
         outlined: {
+          borderRadius: '99em',
           border: `1px solid color-mix(in srgb, currentColor 50%, transparent)`,
-          '&:hover': {
+          '&:hover, &:focus-visible': {
             backgroundColor: 'transparent',
             border: `1px solid`,
           },
+          '&:disabled': {
+            color: general.disabled,
+            backgroudColor: general.disabledBackground,
+            border: `1px solid ${general.disabledBackground}`,
+          },
         },
         outlinedPrimary: {
-          '&:hover': {
+          '&:hover, &:focus-visible': {
             backgroundColor: 'transparent',
           },
         },
         outlinedSecondary: {
-          '&:hover': {
+          '&:hover, &:focus-visible': {
             backgroundColor: 'transparent',
           },
         },
@@ -244,7 +279,7 @@ export const createComponents = (themeConfig: ThemeConfig): Components => {
     components.MuiLink = {
       styleOverrides: {
         underlineHover: {
-          '&:hover': {
+          '&:hover, &:focus-visible': {
             textDecoration: 'none',
           },
         },
@@ -276,7 +311,7 @@ export const createComponents = (themeConfig: ThemeConfig): Components => {
     };
   }
 
-  if (options.inputs !== 'mui') {
+  if (options.checkbox !== 'mui') {
     components.MuiCheckbox = {
       defaultProps: {
         color: 'primary',
@@ -313,6 +348,7 @@ export const createComponents = (themeConfig: ThemeConfig): Components => {
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: general.cardBackgroundColor,
+          borderRadius: '16px',
         },
       },
     };
@@ -464,7 +500,7 @@ export const createComponents = (themeConfig: ThemeConfig): Components => {
       },
       styleOverrides: {
         root: {
-          borderBottom: `1px solid ${general.tabsBottomBorderColor}`,
+          borderBottom: `1px solid ${general.paperBorderColor}`,
           padding: '0 1.5rem',
         },
         vertical: {
@@ -477,16 +513,15 @@ export const createComponents = (themeConfig: ThemeConfig): Components => {
             textAlign: 'left',
           },
           borderBottom: `none`,
-          borderLeft: `1px solid ${general.tabsBottomBorderColor}`,
+          borderLeft: `1px solid ${general.paperBorderColor}`,
           padding: 0,
-        },
-        flexContainerVertical: {
-          '& > button:hover': {
-            boxShadow: `2px 0 ${general.tabsBottomBorderColor} inset`,
+          "& span[class*='MuiTabs-indicator']": {
+            width: '3px',
           },
         },
         indicator: {
           left: 0,
+          height: '3px',
         },
       },
     };
@@ -496,17 +531,65 @@ export const createComponents = (themeConfig: ThemeConfig): Components => {
       },
       styleOverrides: {
         root: {
-          textTransform: 'none',
+          fontWeight: '400',
           minWidth: 'initial !important',
-          '&:disabled': {
-            backgroundColor: general.tabsDisabledBackgroundColor,
+          padding: '0.25em 1em',
+          position: 'relative',
+          textTransform: 'none',
+          zIndex: 1,
+          '&:before': {
+            content: '""',
+            display: 'block',
+            position: 'absolute',
+            top: '0.75em',
+            left: '0.5em',
+            right: '0.5em',
+            bottom: '0.75em',
+            borderRadius: '4px',
+            zIndex: -1,
           },
-          '&:hover': {
-            boxShadow: `0 -2px ${general.tabsBottomBorderColor} inset`,
+          '&.Mui-selected': {
+            color: `${palette.text?.primary} !important`,
+          },
+          '&[class*="v5"]': {
+            lineHeight: 1.75,
+          },
+          '&:hover, &:focus-visible': {
+            backgroundColor: 'transparent !important',
+            '&:before': {
+              backgroundColor: general.tabsLinkHoverBackgroundColor,
+            },
+          },
+          '&:disabled': {
+            color: general.disabled,
+            '&:before': {
+              backgroundColor: general.disabledBackground,
+            },
           },
         },
       },
     };
+
+    // MUI Breadcrumbs
+    if (options.breadcrumbs !== 'mui') {
+      components.MuiBreadcrumbs = {
+        defaultProps: {
+          separator: '>',
+        },
+        styleOverrides: {
+          separator: {
+            fontWeight: 'bold',
+          },
+          root: {
+            fontWeight: '400',
+          },
+          li: {
+            fontSize: '0.875rem !important',
+            fontStyle: 'normal !important',
+          },
+        },
+      };
+    }
   }
 
   //
@@ -521,21 +604,10 @@ export const createComponents = (themeConfig: ThemeConfig): Components => {
         },
         defaultTab: {
           textTransform: 'none',
-          fontSize: '1rem',
-          fontWeight: '500',
-          color: general.disabled,
-          padding: '0.5rem 1rem',
-          '&:hover': {
-            boxShadow: `0 -3px ${general.tabsBottomBorderColor} inset`,
-          },
-        },
-        tabRoot: {
-          '&:hover': {
-            backgroundColor: 'unset',
-          },
-          '&:not(.Mui-selected):hover': {
-            color: general.disabled,
-          },
+          fontSize: '0.875rem',
+          fontWeight: '400',
+          color: 'unset',
+          padding: '0.25em 1em',
         },
       },
     };
@@ -545,19 +617,76 @@ export const createComponents = (themeConfig: ThemeConfig): Components => {
     components.BackstageSidebar = {
       styleOverrides: {
         drawer: {
-          backgroundColor:
-            general.sidebarBackgroundColor ?? general.sideBarBackgroundColor,
-          '& a[class*="BackstageSidebarItem-selected-"]': {
-            backgroundColor: general.sidebarItemSelectedBackgroundColor,
+          gap: '0.25rem',
+          borderRight: `0.5rem solid ${general.sidebarBackgroundColor}`,
+          paddingBottom: '1.5rem',
+          backgroundColor: general.sidebarBackgroundColor,
+          '& hr': {
+            backgroundColor: general.sidebarDividerColor,
           },
         },
       },
     };
     components.BackstageSidebarItem = {
       styleOverrides: {
+        root: {
+          borderRadius: '6px',
+          width: 'calc(100% - 0.5rem) !important',
+          marginLeft: '0.5rem !important',
+          textDecorationLine: 'none',
+          '&:hover, &:focus-visible': {
+            backgroundColor: general.sidebarItemSelectedBackgroundColor,
+          },
+        },
         label: {
           '&[class*="MuiTypography-subtitle2"]': {
-            fontWeight: '500',
+            fontWeight: 'normal',
+          },
+        },
+        selected: {
+          backgroundColor: general.sidebarItemSelectedBackgroundColor,
+        },
+      },
+    };
+    components.MuiBottomNavigation = {
+      styleOverrides: {
+        root: {
+          backgroundColor: `${general.sidebarBackgroundColor} !important`,
+          borderColor: `${general.sidebarBackgroundColor} !important`,
+        },
+      },
+    };
+    components.MuiBottomNavigationAction = {
+      defaultProps: {
+        disableRipple,
+      },
+      styleOverrides: {
+        root: {
+          color: `${palette.text?.primary} !important`,
+          backgroundColor: `${general.sidebarBackgroundColor} !important`,
+          borderRadius: '6px',
+          borderTop: '3px solid transparent !important', // default mui selected styling
+          paddingTop: '6px !important', // default mui selected styling
+          marginTop: '-1px !important', // default mui selected styling
+          '&:hover, &:focus-visible': {
+            backgroundColor: `${general.sidebarItemSelectedBackgroundColor} !important`,
+          },
+        },
+        selected: {
+          backgroundColor: `${general.sidebarItemSelectedBackgroundColor} !important`,
+          color: `${palette.text?.primary} !important`,
+        },
+      },
+    };
+    components.MuiDrawer = {
+      styleOverrides: {
+        root: {
+          // undocumented Backstage makeStyles
+          "& [class*='makeStyles-overlay-']": {
+            backgroundColor: `${general.sidebarBackgroundColor} !important`,
+          },
+          '& hr': {
+            backgroundColor: general.sidebarDividerColor,
           },
         },
       },
@@ -565,10 +694,68 @@ export const createComponents = (themeConfig: ThemeConfig): Components => {
   }
 
   if (options.pages !== 'mui') {
-    components.BackstagePage = {
+    components.RHDHPageWithoutFixHeight = {
       styleOverrides: {
         root: {
-          backgroundColor: general.mainSectionBackgroundColor,
+          // Cancel out the spacing produced by the page inset border when
+          // the global header is present in the above-sidebar position.
+          '@media (min-width: 600px)': {
+            '#rhdh-above-sidebar-header-container:has(*) ~ #rhdh-sidebar-layout':
+              {
+                "& main, & [class*='MuiLinearProgress-root']": {
+                  marginTop: '0 !important',
+                },
+              },
+          },
+        },
+        sidebarLayout: {
+          // Cancel out the spacing produced by the page inset border when
+          // the global header is present in the above-main-content position.
+          '@media (min-width: 600px)': {
+            '#rhdh-above-main-content-header-container:has(*)': {
+              "& ~ main, & ~ [class*='MuiLinearProgress-root']": {
+                marginTop: '0 !important',
+              },
+            },
+          },
+        },
+      },
+    };
+    components.BackstageSidebarPage = {
+      styleOverrides: {
+        root: {
+          // Controls the page inset as in PF6 -- only in desktop view
+          '@media (min-width: 600px)': {
+            backgroundColor: general.sidebarBackgroundColor,
+            // Prevents the main content from scrolling weird
+            overflowY: 'auto',
+            // Cancel out the spacing produced by the page inset border when
+            // the sidebar is present
+            '& nav': {
+              "& ~ main, & ~ [class*='MuiLinearProgress-root']": {
+                marginLeft: '0 !important',
+              },
+            },
+            "& > [class*='MuiLinearProgress-root'], & > main": {
+              // clip-path clips the scrollbar properly in Chrome compared to
+              // border-radius. 1rem is the hardcoded border-radius of the page content.
+              clipPath: 'rect(0 100% 100% 0 round 1rem)',
+              // Emulate the PatternFly 6 page inset using a margin
+              margin: general.pageInset,
+              // Prevent overflow in the main container due to the margin
+              maxHeight: `calc(100vh - 2 * ${general.pageInset})`,
+            },
+            // The Backstage suspense is an MUI LinearProgress that is not wrapped by
+            // a `main`. We need to give it 100vh height to fill the page for the page
+            // inset to look right.
+            "& > [class*='MuiLinearProgress-root']": {
+              backgroundColor: general.mainSectionBackgroundColor,
+              height: '100vh',
+              "& > [class*='MuiLinearProgress-']": {
+                height: '0.5rem !important',
+              },
+            },
+          },
         },
       },
     };
@@ -597,13 +784,42 @@ export const createComponents = (themeConfig: ThemeConfig): Components => {
       styleOverrides: {
         header: {
           boxShadow: 'none',
-          borderBottom: `1px solid ${general.headerBottomBorderColor}`,
         },
         title: {
-          fontWeight: 'bold',
           '&[class*="MuiTypography-h1-"]': {
-            fontWeight: 'bold',
-            fontSize: '2rem',
+            fontWeight: '500',
+            fontSize: '1.5rem',
+          },
+        },
+        subtitle: {
+          '&[class*="BackstageHeader-subtitle-"]': {
+            fontWeight: 'normal',
+            fontSize: '0.875rem',
+            opacity: 1,
+          },
+        },
+        breadcrumb: {
+          marginBottom: '0.5rem',
+        },
+      },
+    };
+    components.BreadcrumbsCurrentPage = {
+      styleOverrides: {
+        root: {
+          '& p': {
+            fontStyle: 'normal',
+            fontSize: 'inherit',
+          },
+        },
+      },
+    };
+    components.BackstageBreadcrumbsStyledBox = {
+      styleOverrides: {
+        root: {
+          textDecoration: 'underline !important',
+          color: palette.rhdh?.primary.main,
+          '&:hover': {
+            color: `color-mix(in srgb, ${palette.rhdh?.primary.main} 50%, ${palette.text?.primary})`,
           },
         },
       },
@@ -673,6 +889,7 @@ export const createComponents = (themeConfig: ThemeConfig): Components => {
       styleOverrides: {
         root: {
           height: '3px',
+          zIndex: 1,
         },
         vertical: {
           width: '3px',

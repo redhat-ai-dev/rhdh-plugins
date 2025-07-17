@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Link } from '@backstage/core-components';
 
@@ -90,7 +90,7 @@ export const AddRepositoriesDrawer = ({
     onClose();
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     const sr = Object.values(values.repositories).reduce(
       (acc, repo) =>
         repo.orgName === orgData?.orgName ? { ...acc, [repo.id]: repo } : acc,
@@ -147,7 +147,7 @@ export const AddRepositoriesDrawer = ({
             bottom: '20px',
           }}
         >
-          <span>
+          <Typography component="span">
             <Button
               variant="contained"
               color="primary"
@@ -159,8 +159,8 @@ export const AddRepositoriesDrawer = ({
             >
               Select
             </Button>
-          </span>
-          <span>
+          </Typography>
+          <Typography component="span">
             <Button
               data-testid="close-drawer"
               variant="outlined"
@@ -168,7 +168,7 @@ export const AddRepositoriesDrawer = ({
             >
               Cancel
             </Button>
-          </span>
+          </Typography>
         </Box>
       </Container>
     </Drawer>

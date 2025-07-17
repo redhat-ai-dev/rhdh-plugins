@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-import React from 'react';
+import { Fragment } from 'react';
+import type { ComponentType, FC } from 'react';
 import Divider from '@mui/material/Divider';
 import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import MenuItem from '@mui/material/MenuItem';
+import MenuItem, { MenuItemProps } from '@mui/material/MenuItem';
 import { Link } from '@backstage/core-components';
-import { HeaderLinkProps } from '../HeaderLinkComponent/HeaderLink';
+import { MenuItemLinkProps } from '../MenuItemLink/MenuItemLink';
+import ListSubheader from '@mui/material/ListSubheader';
 
 /**
  * Menu item configuration
@@ -28,8 +29,7 @@ import { HeaderLinkProps } from '../HeaderLinkComponent/HeaderLink';
  * @public
  */
 export interface MenuItemConfig {
-  Component: React.ComponentType<HeaderLinkProps | {}>;
-  type: string;
+  Component: ComponentType<MenuItemLinkProps | MenuItemProps | {}>;
   label: string;
   icon?: string;
   subLabel?: string;
@@ -45,72 +45,79 @@ export interface MenuSectionConfig {
   handleClose: () => void;
 }
 
-const MenuSection: React.FC<MenuSectionConfig> = ({
+export const MenuSection: FC<MenuSectionConfig> = ({
   sectionLabel,
   optionalLink,
   optionalLinkLabel,
   items,
   hideDivider = false,
   handleClose,
-}) => (
-  <Box>
-    {sectionLabel && (
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mx: 0,
-          mt: '0.5rem',
-          '&:hover': { background: 'transparent' },
-        }}
-      >
-        <Typography variant="body2" sx={{ pl: 2, color: 'text.disabled' }}>
-          {sectionLabel}
-        </Typography>
+}) => {
+  const hasClickableSubheader =
+    optionalLink && optionalLinkLabel && items.length > 0;
+
+  return (
+    <>
+      {sectionLabel && (
         <MenuItem
           sx={{
-            '&:hover': { background: 'transparent' },
+            p: 0,
           }}
           disableRipple
           disableTouchRipple
+          component={hasClickableSubheader ? Link : Fragment}
+          to={optionalLink}
           onClick={handleClose}
         >
-          {optionalLink && optionalLinkLabel && (
-            <Link
-              to={optionalLink}
-              underline="none"
-              style={{ fontSize: '0.875em' }}
+          <ListSubheader
+            sx={{
+              backgroundColor: 'transparent',
+              m: 0,
+              color: 'text.disabled',
+              lineHeight: 2,
+              mt: '0.5rem',
+              fontWeight: 400,
+            }}
+          >
+            {sectionLabel}
+          </ListSubheader>
+
+          {optionalLinkLabel && (
+            <Box
+              sx={{
+                fontSize: '0.875em',
+                mr: 2,
+                flexGrow: 1,
+                textAlign: 'right',
+                mt: '0.5rem',
+              }}
             >
               {optionalLinkLabel}
-            </Link>
+            </Box>
           )}
         </MenuItem>
-      </Box>
-    )}
-    <ul style={{ padding: 0, listStyle: 'none' }}>
-      {items.map(({ type, icon, label, subLabel, link, Component }, index) => (
+      )}
+
+      {items.map(({ icon, label, subLabel, link, Component }, index) => (
         <MenuItem
           key={`menu-item-${index.toString()}`}
           disableRipple
           disableTouchRipple
           onClick={handleClose}
-          sx={{ py: 0.5, '&:hover': { background: 'transparent' } }}
+          sx={{ py: 0.5 }}
+          component={link ? Link : Fragment}
+          to={link}
         >
-          {link && (
-            <Component
-              icon={icon}
-              to={link}
-              title={label}
-              subTitle={subLabel}
-            />
-          )}
-          {type === 'logout' && <Component />}
+          <Component
+            icon={icon}
+            to={link!}
+            title={label}
+            subTitle={subLabel}
+            onClick={handleClose}
+          />
         </MenuItem>
       ))}
-    </ul>
-    {!hideDivider && <Divider sx={{ margin: '8px 0' }} />}
-  </Box>
-);
-
-export default MenuSection;
+      {!hideDivider && <Divider sx={{ my: 0.5 }} />}
+    </>
+  );
+};

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Backstage Authors
+ * Copyright Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /* eslint-disable @typescript-eslint/no-use-before-define */
 
 import { JsonObject } from '@backstage/types';
@@ -20,6 +21,7 @@ import { JsonObject } from '@backstage/types';
 import { UiSchema } from '@rjsf/utils';
 import type { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import get from 'lodash/get';
+import merge from 'lodash/merge';
 import set from 'lodash/set';
 
 /**
@@ -109,7 +111,17 @@ function extractUiSchema(mixedSchema: JSONSchema7): UiSchema<JsonObject> {
     } else {
       processLeafSchema(curSchema, path);
     }
+    processOrder(curSchema, path);
     processComposedSchema(curSchema, path);
+  };
+
+  const processOrder = (curSchema: JSONSchema7Definition, path: string) => {
+    const uiOrder = get(curSchema, 'ui:order');
+    if (uiOrder) {
+      const diff = {};
+      set(diff, getStringAfterDot(`${path}.ui:order`), uiOrder);
+      merge(result, diff);
+    }
   };
 
   const processLeafSchema = (
@@ -138,6 +150,7 @@ function extractUiSchema(mixedSchema: JSONSchema7): UiSchema<JsonObject> {
     if (schema.additionalItems && typeof schema.additionalItems === 'object') {
       processObject(schema.additionalItems, `${path}.additinalItems`);
     }
+    processLeafSchema(schema, path);
   };
 
   const processComposedSchema = (curSchema: JSONSchema7, path: string) => {
@@ -164,7 +177,7 @@ const addReadonly = (
   uiSchema: UiSchema<JsonObject>,
   isMultiStep: boolean,
 ) => {
-  // make inputs that came from assessment instance variables readonly
+  // make inputs that came from existing instance variables readonly
   if (!isMultiStep) {
     for (const key of Object.keys(data)) {
       uiSchema[key] = {

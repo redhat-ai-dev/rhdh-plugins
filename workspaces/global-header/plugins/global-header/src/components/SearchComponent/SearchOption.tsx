@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import React from 'react';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import { Link } from '@backstage/core-components';
@@ -55,7 +54,7 @@ export const SearchOption = ({
             className="allResultsOption"
           >
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Typography sx={{ flexGrow: 1, mr: 1 }}>All results</Typography>
+              <Typography sx={{ flexGrow: 1 }}>All results</Typography>
               <ArrowForwardIcon fontSize="small" />
             </Box>
           </ListItem>

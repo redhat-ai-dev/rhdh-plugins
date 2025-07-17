@@ -53,16 +53,16 @@ jobs:
         with:
           ref: ${{ inputs.branch }}
       - name: Set up Node
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 20
+          node-version: 22
           registry-url: https://registry.npmjs.org/ # Needed for auth
 
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
         run: echo "dir=$(yarn config get cacheFolder)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
@@ -92,7 +92,7 @@ jobs:
       - name: Update Version Packages (${{ inputs.workspace }}) PR
         id: changesets-pr
         if: steps.release_check.outputs.needs_release != 'true' || inputs.force_release != true
-        uses: backstage/changesets-action@291bfc1f76d1dcfbf967f5810dc0423592eae09a # v2.3.1
+        uses: backstage/changesets-action@a39baf18913e669734ffb00c2fd9900472cfa240 # v2.3.2
         with:
           title: Version Packages (${{ inputs.workspace }})
           cwd: workspaces/${{ inputs.workspace }}
@@ -120,9 +120,9 @@ jobs:
         with:
           ref: ${{ inputs.branch }}
       - name: Set up Node
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 20
+          node-version: 22
           registry-url: https://registry.npmjs.org/ # Needed for auth
 
       - name: Install root dependencies
@@ -133,7 +133,7 @@ jobs:
         id: yarn-cache-dir-path
         run: echo "dir=$(yarn config get cacheFolder)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}

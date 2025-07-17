@@ -21,7 +21,7 @@ import {
   OAuthRequestDialog,
   SignInPage,
 } from '@backstage/core-components';
-import { githubAuthApiRef } from '@backstage/core-plugin-api';
+import { githubAuthApiRef, gitlabAuthApiRef } from '@backstage/core-plugin-api';
 import { apiDocsPlugin, ApiExplorerPage } from '@backstage/plugin-api-docs';
 import {
   CatalogEntityPage,
@@ -47,7 +47,9 @@ import { ReportIssue } from '@backstage/plugin-techdocs-module-addons-contrib';
 import { TechDocsAddons } from '@backstage/plugin-techdocs-react';
 import { UserSettingsPage } from '@backstage/plugin-user-settings';
 import { OrchestratorPage } from '@red-hat-developer-hub/backstage-plugin-orchestrator';
-import { getThemes } from '@redhat-developer/red-hat-developer-hub-theme';
+import { orchestratorFormWidgetsPlugin } from '@red-hat-developer-hub/backstage-plugin-orchestrator-form-widgets';
+import { customAuthProviderPlugin } from 'custom-authentication-provider-module';
+import { getThemes } from '@red-hat-developer-hub/backstage-plugin-theme';
 import { NotificationsPage } from '@backstage/plugin-notifications';
 import { SignalsDisplay } from '@backstage/plugin-signals';
 import { RbacPage } from '@backstage-community/plugin-rbac';
@@ -90,11 +92,20 @@ const app = createApp({
             message: 'Sign in using GitHub',
             apiRef: githubAuthApiRef,
           },
+          {
+            id: 'gitlab-auth-provider',
+            title: 'GitLab',
+            message: 'Sign in using GitLab',
+            apiRef: gitlabAuthApiRef,
+          },
         ]}
       />
     ),
   },
   themes: getThemes(),
+  /* Hardcoded deployment of the Orchestrator Form Widget library in our DEV-only instance.
+    In a production deployment, the plugin will be loaded dynamically. */
+  plugins: [orchestratorFormWidgetsPlugin, customAuthProviderPlugin],
 });
 
 const routes = (

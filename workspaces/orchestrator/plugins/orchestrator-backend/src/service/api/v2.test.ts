@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Backstage Authors
+ * Copyright Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,12 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import { Request } from 'express';
 
 import {
-  AssessedProcessInstanceDTO,
   ExecuteWorkflowResponseDTO,
   FieldFilterOperatorEnum,
+  ProcessInstanceDTO,
   ProcessInstanceListResultDTO,
   SearchRequest,
   toWorkflowYaml,
@@ -67,6 +68,7 @@ const createMockOrchestratorService = (): OrchestratorService => {
   mockOrchestratorService.fetchInstance = jest.fn();
   mockOrchestratorService.executeWorkflow = jest.fn();
   mockOrchestratorService.abortWorkflowInstance = jest.fn();
+  mockOrchestratorService.pingWorkflowService = jest.fn();
 
   return mockOrchestratorService;
 };
@@ -290,7 +292,6 @@ describe('getWorkflowOverviewById', () => {
     expect(overviewV2.format).toBeUndefined();
     expect(overviewV2.lastTriggeredMs).toBeUndefined();
     expect(overviewV2.lastRunStatus).toBeUndefined();
-    expect(overviewV2.category).toEqual('infrastructure');
     expect(overviewV2.description).toBeUndefined();
   });
 
@@ -347,7 +348,6 @@ describe('getWorkflowById', () => {
     expect(workflowV2.name).toEqual(wfDefinition.name);
     expect(workflowV2.format).toEqual(testFormat);
     expect(workflowV2.description).toEqual(wfDefinition.description);
-    expect(workflowV2.category).toEqual('infrastructure');
     expect(workflowV2.annotations).toBeDefined();
   });
 });
@@ -363,6 +363,9 @@ describe('executeWorkflow', () => {
     (mockOrchestratorService.fetchWorkflowInfo as jest.Mock).mockResolvedValue(
       workflowInfo,
     );
+    (
+      mockOrchestratorService.pingWorkflowService as jest.Mock
+    ).mockResolvedValue(workflowInfo);
 
     (mockOrchestratorService.executeWorkflow as jest.Mock).mockResolvedValue(
       execResponse,
@@ -376,7 +379,8 @@ describe('executeWorkflow', () => {
     const actualResultV2: ExecuteWorkflowResponseDTO = await v2.executeWorkflow(
       workflowData,
       workflowInfo.id,
-      'businessKey',
+      'someUserEntity',
+      'someToken',
     );
 
     // Assert
@@ -463,7 +467,7 @@ describe('getInstanceById', () => {
     await expect(promise).rejects.toThrow('No instance');
   });
 
-  it('Instance exists and do not include assessment', async () => {
+  it('Instance exists', async () => {
     const processInstance = generateProcessInstance(1);
 
     (mockOrchestratorService.fetchInstance as jest.Mock).mockResolvedValue(
@@ -471,40 +475,14 @@ describe('getInstanceById', () => {
     );
 
     // Act
-    const processInstanceV2: AssessedProcessInstanceDTO =
-      await v2.getInstanceById(processInstance.id);
+    const processInstanceV2: ProcessInstanceDTO = await v2.getInstanceById(
+      processInstance.id,
+    );
 
     // Assert
     expect(mockOrchestratorService.fetchInstance).toHaveBeenCalledTimes(1);
     expect(processInstanceV2).toBeDefined();
-    expect(processInstanceV2.instance).toBeDefined();
-    expect(processInstanceV2.assessedBy).toBeUndefined();
-    expect(processInstanceV2.instance.id).toEqual(processInstance.id);
-  });
-
-  it('Instance exists, assessment non empty string', async () => {
-    const processInstance = generateProcessInstance(1);
-    processInstance.businessKey = 'testBusinessKey';
-    const assessedBy = generateProcessInstance(1);
-    assessedBy.id = processInstance.businessKey;
-
-    (mockOrchestratorService.fetchInstance as jest.Mock)
-      .mockResolvedValueOnce(processInstance)
-      .mockResolvedValueOnce(assessedBy);
-
-    // Act
-    const processInstanceV2: AssessedProcessInstanceDTO =
-      await v2.getInstanceById(processInstance.id, true);
-
-    // Assert
-    expect(mockOrchestratorService.fetchInstance).toHaveBeenCalledTimes(2);
     expect(processInstanceV2).toBeDefined();
-    expect(processInstanceV2.instance).toBeDefined();
-    expect(processInstanceV2.assessedBy).toBeDefined();
-    expect(processInstanceV2.assessedBy?.id).toEqual(
-      processInstance.businessKey,
-    );
-    expect(processInstanceV2.instance.id).toEqual(processInstance.id);
   });
 });
 

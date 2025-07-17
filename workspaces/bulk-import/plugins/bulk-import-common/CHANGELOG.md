@@ -1,5 +1,37 @@
 ## @red-hat-developer-hub/backstage-plugin-bulk-import-common [0.2.0](https://github.com/janus-idp/backstage-plugins/compare/@red-hat-developer-hub/backstage-plugin-bulk-import-common@0.1.0...@red-hat-developer-hub/backstage-plugin-bulk-import-common@0.2.0) (2024-07-25)
 
+## 1.7.1
+
+### Patch Changes
+
+- 22e947b: Bump to backstage version 1.39.1
+
+## 1.7.0
+
+### Minor Changes
+
+- 361daf4: Backstage version bump to v1.38.1
+
+### Patch Changes
+
+- a9e5f32: Updated dependency `@openapitools/openapi-generator-cli` to `2.20.0`.
+  Updated dependency `prettier` to `3.5.3`.
+  Updated dependency `@redhat-developer/red-hat-developer-hub-theme` to `0.5.1`.
+  Updated dependency `@red-hat-developer-hub/backstage-plugin-theme` to `^0.6.0`.
+  Updated dependency `@janus-idp/cli` to `3.5.0`.
+
+## 1.6.0
+
+### Minor Changes
+
+- 95b14e6: Backstage version bump to v1.36.1
+
+## 1.5.0
+
+### Minor Changes
+
+- fbbd37f: Backstage version bump to v1.35.0
+
 ## 1.4.2
 
 ### Patch Changes

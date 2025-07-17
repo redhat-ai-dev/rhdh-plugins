@@ -6,17 +6,20 @@
 
 import { JsonObject } from '@backstage/types';
 import type { JSONSchema7 } from 'json-schema';
+import { OrchestratorFormContextProps } from '@red-hat-developer-hub/backstage-plugin-orchestrator-form-api';
 import { default as React_2 } from 'react';
 
 // @public
-export const OrchestratorForm: ({ schema, handleExecute, isExecuting, data, isDataReadonly, }: OrchestratorFormProps) => React_2.JSX.Element;
+export const OrchestratorForm: ({ schema, updateSchema, handleExecute, isExecuting, initialFormData, isDataReadonly, setAuthTokenDescriptors, }: OrchestratorFormProps) => React_2.JSX.Element;
 
 // @public
 export type OrchestratorFormProps = {
     schema: JSONSchema7;
+    updateSchema: OrchestratorFormContextProps['updateSchema'];
+    setAuthTokenDescriptors: OrchestratorFormContextProps['setAuthTokenDescriptors'];
     isExecuting: boolean;
     handleExecute: (parameters: JsonObject) => Promise<void>;
-    data?: JsonObject;
+    initialFormData: JsonObject;
     isDataReadonly?: boolean;
 };
 

@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-import React from 'react';
+import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAsync } from 'react-use';
 
 import { useApi } from '@backstage/core-plugin-api';
 import { usePermission } from '@backstage/plugin-permission-react';
 
-import { useDrawer } from '@janus-idp/shared-react';
 import EditIcon from '@mui/icons-material/Edit';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
 import { useFormikContext } from 'formik';
 
 import { bulkImportPermission } from '@red-hat-developer-hub/backstage-plugin-bulk-import-common';
@@ -37,6 +37,7 @@ import {
   ImportJobStatus,
   RepositoryStatus,
 } from '../../types';
+import { useDrawer } from '../DrawerContext';
 
 const CatalogInfoAction = ({ data }: { data: AddRepositoryData }) => {
   const { setDrawerData, setOpenDrawer, drawerData } = useDrawer();
@@ -93,7 +94,7 @@ const CatalogInfoAction = ({ data }: { data: AddRepositoryData }) => {
     });
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!loading && repoUrl && defaultBranch) {
       const shouldOpenPanel =
         value?.status === RepositoryStatus.WAIT_PR_APPROVAL &&
@@ -156,7 +157,9 @@ const CatalogInfoAction = ({ data }: { data: AddRepositoryData }) => {
 
   return catalogIcon()?.tooltip ? (
     <Tooltip title={catalogIcon()?.tooltip || ''}>
-      <span data-testid={catalogIcon()?.dataTestId}>{catalogIcon()?.icon}</span>
+      <Typography component="span" data-testid={catalogIcon()?.dataTestId}>
+        {catalogIcon()?.icon}
+      </Typography>
     </Tooltip>
   ) : null;
 };

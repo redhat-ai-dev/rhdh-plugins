@@ -6,7 +6,7 @@
 /// <reference types="react" />
 
 import { BackstagePlugin } from '@backstage/core-plugin-api';
-import { JSX as JSX_2 } from 'react';
+import { JSX as JSX_2 } from 'react/jsx-runtime';
 import { ReactNode } from 'react';
 
 // @public (undocumented)
@@ -27,6 +27,12 @@ export const CountProvider: ({
 
 // @public (undocumented)
 export const CrashProvider: () => never;
+
+// @public (undocumented)
+export const CrashProviderWithoutErrorBoundary: {
+  (): never;
+  displayName: string;
+};
 
 // @public (undocumented)
 export const TestCardOne: () => JSX_2.Element;

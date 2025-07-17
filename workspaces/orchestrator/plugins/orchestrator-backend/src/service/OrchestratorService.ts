@@ -15,6 +15,7 @@
  */
 
 import {
+  AuthToken,
   Filter,
   ProcessInstance,
   ProcessInstanceVariables,
@@ -27,7 +28,7 @@ import {
 import { Pagination } from '../types/pagination';
 import { DataIndexService } from './DataIndexService';
 import { SonataFlowService } from './SonataFlowService';
-import { CacheHandler, WorkflowCacheService } from './WorkflowCacheService';
+import { WorkflowCacheService } from './WorkflowCacheService';
 
 export class OrchestratorService {
   constructor(
@@ -45,30 +46,15 @@ export class OrchestratorService {
     definitionId: string;
     instanceId: string;
     serviceUrl: string;
-    cacheHandler?: CacheHandler;
   }): Promise<void> {
-    const { definitionId, cacheHandler } = args;
-    const isWorkflowAvailable = this.workflowCacheService.isAvailable(
-      definitionId,
-      cacheHandler,
-    );
-    return isWorkflowAvailable
-      ? await this.sonataFlowService.abortInstance(args)
-      : undefined;
+    return await this.sonataFlowService.abortInstance(args);
   }
 
   public async fetchWorkflowInfo(args: {
     definitionId: string;
-    cacheHandler?: CacheHandler;
   }): Promise<WorkflowInfo | undefined> {
-    const { definitionId, cacheHandler } = args;
-    const isWorkflowAvailable = this.workflowCacheService.isAvailable(
-      definitionId,
-      cacheHandler,
-    );
-    return isWorkflowAvailable
-      ? await this.dataIndexService.fetchWorkflowInfo(definitionId)
-      : undefined;
+    const { definitionId } = args;
+    return await this.dataIndexService.fetchWorkflowInfo(definitionId);
   }
 
   public async fetchInstances(args: {
@@ -88,45 +74,24 @@ export class OrchestratorService {
 
   public async fetchWorkflowSource(args: {
     definitionId: string;
-    cacheHandler?: CacheHandler;
   }): Promise<string | undefined> {
-    const { definitionId, cacheHandler } = args;
-    const isWorkflowAvailable = this.workflowCacheService.isAvailable(
-      definitionId,
-      cacheHandler,
-    );
-    return isWorkflowAvailable
-      ? await this.dataIndexService.fetchWorkflowSource(definitionId)
-      : undefined;
+    const { definitionId } = args;
+    return await this.dataIndexService.fetchWorkflowSource(definitionId);
   }
 
   public async fetchInstanceVariables(args: {
     instanceId: string;
-    cacheHandler?: CacheHandler;
   }): Promise<object | undefined> {
-    const { instanceId, cacheHandler } = args;
-    const definitionId =
-      await this.dataIndexService.fetchDefinitionIdByInstanceId(instanceId);
-    const isWorkflowAvailable = this.workflowCacheService.isAvailable(
-      definitionId,
-      cacheHandler,
-    );
-    return isWorkflowAvailable
-      ? await this.dataIndexService.fetchInstanceVariables(instanceId)
-      : undefined;
+    const { instanceId } = args;
+    return await this.dataIndexService.fetchInstanceVariables(instanceId);
   }
 
   public async fetchInstance(args: {
     instanceId: string;
-    cacheHandler?: CacheHandler;
   }): Promise<ProcessInstance | undefined> {
-    const { instanceId, cacheHandler } = args;
+    const { instanceId } = args;
     const instance = await this.dataIndexService.fetchInstance(instanceId);
-    const isWorkflowAvailable = this.workflowCacheService.isAvailable(
-      instance?.processId,
-      cacheHandler,
-    );
-    return isWorkflowAvailable ? instance : undefined;
+    return instance;
   }
 
   // SonataFlow Service Wrapper
@@ -134,40 +99,35 @@ export class OrchestratorService {
   public async fetchWorkflowInfoOnService(args: {
     definitionId: string;
     serviceUrl: string;
-    cacheHandler?: CacheHandler;
   }): Promise<WorkflowInfo | undefined> {
-    const { definitionId, cacheHandler } = args;
-    const isWorkflowAvailable = this.workflowCacheService.isAvailable(
-      definitionId,
-      cacheHandler,
-    );
-    return isWorkflowAvailable
-      ? await this.sonataFlowService.fetchWorkflowInfoOnService(args)
-      : undefined;
+    return await this.sonataFlowService.fetchWorkflowInfoOnService(args);
   }
 
   public async fetchWorkflowDefinition(args: {
     definitionId: string;
-    cacheHandler?: CacheHandler;
   }): Promise<WorkflowDefinition | undefined> {
-    const { definitionId, cacheHandler } = args;
-    const isWorkflowAvailable = this.workflowCacheService.isAvailable(
-      definitionId,
-      cacheHandler,
-    );
-    return isWorkflowAvailable
-      ? await this.sonataFlowService.fetchWorkflowDefinition(definitionId)
-      : undefined;
+    const { definitionId } = args;
+    return await this.sonataFlowService.fetchWorkflowDefinition(definitionId);
   }
 
   public async fetchWorkflowOverviews(args: {
     pagination?: Pagination;
     filter?: Filter;
   }): Promise<WorkflowOverview[] | undefined> {
-    return await this.sonataFlowService.fetchWorkflowOverviews({
-      definitionIds: this.workflowCacheService.definitionIds,
+    const overviews = await this.sonataFlowService.fetchWorkflowOverviews({
+      definitionIds: this.workflowCacheService.definitionIds?.concat(
+        this.workflowCacheService.unavailableDefinitionIds,
+      ),
       pagination: args.pagination,
       filter: args.filter,
+    });
+
+    return overviews?.map(overview => {
+      const updatedOverview = overview;
+      updatedOverview.isAvailable = this.workflowCacheService.isAvailable(
+        updatedOverview.workflowId,
+      );
+      return updatedOverview;
     });
   }
 
@@ -175,46 +135,41 @@ export class OrchestratorService {
     definitionId: string;
     serviceUrl: string;
     inputData?: ProcessInstanceVariables;
-    businessKey?: string;
-    cacheHandler?: CacheHandler;
+    authTokens?: Array<AuthToken>;
+    backstageToken?: string | undefined;
   }): Promise<WorkflowExecutionResponse | undefined> {
-    const { definitionId, cacheHandler } = args;
-    const isWorkflowAvailable = this.workflowCacheService.isAvailable(
-      definitionId,
-      cacheHandler,
-    );
-    return isWorkflowAvailable
-      ? await this.sonataFlowService.executeWorkflow(args)
-      : undefined;
+    return await this.sonataFlowService.executeWorkflow(args);
   }
 
   public async retriggerWorkflow(args: {
     definitionId: string;
     instanceId: string;
     serviceUrl: string;
-    cacheHandler?: CacheHandler;
   }): Promise<boolean | undefined> {
-    const { definitionId, cacheHandler } = args;
-    const isWorkflowAvailable = this.workflowCacheService.isAvailable(
-      definitionId,
-      cacheHandler,
-    );
-    return isWorkflowAvailable
-      ? await this.sonataFlowService.retriggerInstance(args)
-      : undefined;
+    return this.sonataFlowService.retriggerInstance(args);
   }
 
   public async fetchWorkflowOverview(args: {
     definitionId: string;
-    cacheHandler?: CacheHandler;
   }): Promise<WorkflowOverview | undefined> {
-    const { definitionId, cacheHandler } = args;
-    const isWorkflowAvailable = this.workflowCacheService.isAvailable(
+    const { definitionId } = args;
+    const isWorkflowAvailable =
+      this.workflowCacheService.isAvailable(definitionId);
+    const overview =
+      await this.sonataFlowService.fetchWorkflowOverview(definitionId);
+    if (overview) overview.isAvailable = isWorkflowAvailable; // workflow overview is avaiable but the workflow itself is not
+    return overview;
+  }
+
+  public async pingWorkflowService(args: {
+    definitionId: string;
+    serviceUrl: string;
+  }): Promise<boolean | undefined> {
+    const { definitionId, serviceUrl } = args;
+    const isServiceUp = await this.sonataFlowService.pingWorkflowService({
       definitionId,
-      cacheHandler,
-    );
-    return isWorkflowAvailable
-      ? await this.sonataFlowService.fetchWorkflowOverview(definitionId)
-      : undefined;
+      serviceUrl,
+    });
+    return isServiceUp;
   }
 }

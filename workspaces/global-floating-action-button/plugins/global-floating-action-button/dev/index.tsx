@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React from 'react';
+import type { ReactElement } from 'react';
 import { createDevApp, DevAppPageOptions } from '@backstage/dev-utils';
 import AddIcon from '@mui/icons-material/Add';
 import GitIcon from '@mui/icons-material/GitHub';
@@ -89,7 +89,7 @@ const createPage = ({
   component,
 }: {
   navTitle: string;
-  component: React.ReactElement;
+  component: ReactElement;
   pageTitle: string;
   path: string;
 }): DevAppPageOptions => {
@@ -98,7 +98,7 @@ const createPage = ({
     api: {
       dynamicRootConfig: {
         mountPoints: {
-          'global.floatingactionbutton/component': [
+          'global.floatingactionbutton/config': [
             {
               staticJSXContent: null,
               config: {

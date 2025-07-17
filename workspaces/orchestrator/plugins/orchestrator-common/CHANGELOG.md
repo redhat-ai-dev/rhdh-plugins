@@ -1,5 +1,98 @@
 ## @red-hat-developer-hub/backstage-plugin-orchestrator-common [1.13.1](https://github.com/janus-idp/backstage-plugins/compare/@red-hat-developer-hub/backstage-plugin-orchestrator-common@1.13.0...@red-hat-developer-hub/backstage-plugin-orchestrator-common@1.13.1) (2024-08-02)
 
+## 1.28.4
+
+### Patch Changes
+
+- ff0f69e: update API - fetch executionSummary field
+  Use execution summary for results card
+
+## 1.28.3
+
+### Patch Changes
+
+- a3df181: Updated dependency `@openapitools/openapi-generator-cli` to `2.21.0`.
+
+## 1.28.2
+
+### Patch Changes
+
+- da78550: Updated dependency `@openapitools/openapi-generator-cli` to `2.20.5`.
+
+## 1.28.1
+
+### Patch Changes
+
+- a9a6095: removing business key
+
+## 1.28.0
+
+### Minor Changes
+
+- 53f3ffb: implemented authorization widget for enabling specifying the required auth providers in the schema so the UI can pick it up from there and forward to workflow execution
+
+## 1.27.3
+
+### Patch Changes
+
+- 4ecd9f0: Limit access to workflow instances to initiators only
+- 9bc8af0: remove failed nodes from previous executions/retriggers
+
+## 1.27.2
+
+### Patch Changes
+
+- c6b54ad: Updated dependency `@openapitools/openapi-generator-cli` to `2.20.2`.
+- 7f6ca8a: add filter by variables and nested variables
+
+## 1.27.1
+
+### Patch Changes
+
+- 56c160b: Add endpoind to ping workflow service
+
+## 1.27.0
+
+### Minor Changes
+
+- fc9ce7c: Backstage version bump to v1.37.1
+
+### Patch Changes
+
+- 2f33284: Update kie-tools, @janus/cli and Backstage supported version to the most recent ones.
+- a9e5f32: Updated dependency `@openapitools/openapi-generator-cli` to `2.20.0`.
+  Updated dependency `prettier` to `3.5.3`.
+  Updated dependency `@redhat-developer/red-hat-developer-hub-theme` to `0.5.1`.
+  Updated dependency `@red-hat-developer-hub/backstage-plugin-theme` to `^0.6.0`.
+  Updated dependency `@janus-idp/cli` to `3.5.0`.
+
+## 1.26.2
+
+### Patch Changes
+
+- 691fd23: fix tests
+
+## 1.26.1
+
+### Patch Changes
+
+- 29cf5fb: Limit viewable component to specific roles
+- 754a051: Adapt UI for completedWith field removal
+
+## 1.26.0
+
+### Minor Changes
+
+- 967c377: Fixed unsupported filter operators
+
+### Patch Changes
+
+- 05a1ce0: Updated dependency `@openapitools/openapi-generator-cli` to `2.16.3`.
+- 816d8bc: Updated dependency `@openapitools/openapi-generator-cli` to `2.16.2`.
+- c7de094: add orchestrator.workflow.use among permissions in the RBAC UI
+- bee24dc: add unavailable workflows to cache and overview
+- d4fa6bf: use 'update' policy for orchestrator.workflow.use
+
 ## 1.25.1
 
 ### Patch Changes

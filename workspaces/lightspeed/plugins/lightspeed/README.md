@@ -17,9 +17,9 @@ The Lightspeed plugin has support for the permission framework.
 - When [RBAC permission](https://github.com/backstage/community-plugins/tree/main/workspaces/rbac/plugins/rbac-backend#installation) framework is enabled, for non-admin users to access lightspeed UI, the role associated with your user should have the following permission policies associated with it. Add the following in your permission policies configuration file named `rbac-policy.csv`:
 
 ```CSV
-p, role:default/team_a, lightspeed.conversations.read, read, allow
-p, role:default/team_a, lightspeed.conversations.create, create, allow
-p, role:default/team_a, lightspeed.conversations.delete, delete, allow
+p, role:default/team_a, lightspeed.chat.read, read, allow
+p, role:default/team_a, lightspeed.chat.create, create, allow
+p, role:default/team_a, lightspeed.chat.delete, delete, allow
 
 g, user:default/<your-user-name>, role:default/team_a
 
@@ -122,6 +122,21 @@ lightspeed:
     - id: <server_id>
       url: <server_URL>
       token: <api_key>
+  questionValidation: true # Optional - To disable question (prompt) validation set it to false.
+  prompts: # optional
+    - title: <prompt_title>
+    - message: <prompt_message>
+```
+
+`questionValidation` is default to be enabled with topic restriction on RHDH related topics.
+If you want to disable the validation, set the value to be `false`.
+
+Example configuration to disable `questionValidation`:
+
+```yaml
+lightspeed:
+  questionValidation: false
+  servers: ... ...
 ```
 
 ---

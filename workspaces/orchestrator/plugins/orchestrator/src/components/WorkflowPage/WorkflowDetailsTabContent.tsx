@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Backstage Authors
+ * Copyright Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,47 +13,72 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import React from 'react';
+import { useAsync } from 'react-use';
 
-import { InfoCard } from '@backstage/core-components';
+import { InfoCard, ResponseErrorPanel } from '@backstage/core-components';
+import { useApi, useRouteRefParams } from '@backstage/core-plugin-api';
+import { usePermission } from '@backstage/plugin-permission-react';
 
-import { Grid } from '@material-ui/core';
+import Grid from '@mui/material/Grid';
 
-import { WorkflowOverviewDTO } from '@red-hat-developer-hub/backstage-plugin-orchestrator-common';
+import {
+  orchestratorAdminViewPermission,
+  WorkflowOverviewDTO,
+} from '@red-hat-developer-hub/backstage-plugin-orchestrator-common';
 
-import { EditorViewKind, WorkflowEditor } from '../WorkflowEditor';
+import { orchestratorApiRef } from '../../api';
+import { workflowRouteRef } from '../../routes';
+import ServerlessWorkflowEditor from './ServerlessWorkflowEditor';
 import WorkflowDefinitionDetailsCard from './WorkflowDetailsCard';
 
 interface Props {
-  loading: boolean;
+  loadingWorkflowOverview: boolean;
   workflowOverviewDTO: WorkflowOverviewDTO | undefined;
+  errorWorkflowOverview: Error | undefined;
 }
 
 export const WorkflowDetailsTabContent = ({
-  loading,
+  loadingWorkflowOverview,
   workflowOverviewDTO,
+  errorWorkflowOverview,
 }: Props) => {
+  const adminView = usePermission({
+    permission: orchestratorAdminViewPermission,
+  });
+  const { workflowId } = useRouteRefParams(workflowRouteRef);
+  const orchestratorApi = useApi(orchestratorApiRef);
+
+  const { loading, value, error } = useAsync(() => {
+    return orchestratorApi.getWorkflowSource(workflowId);
+  }, []);
+
   return (
-    <>
+    <Grid container item direction="column" xs={12} spacing={2}>
+      {errorWorkflowOverview && (
+        <Grid item>
+          <ResponseErrorPanel error={errorWorkflowOverview} />
+        </Grid>
+      )}
       <Grid item>
         <WorkflowDefinitionDetailsCard
           workflowOverview={workflowOverviewDTO}
-          loading={loading}
+          loading={loadingWorkflowOverview}
         />
       </Grid>
-      <Grid item>
-        {workflowOverviewDTO && (
+      {workflowOverviewDTO && adminView.allowed && value && (
+        <Grid item>
           <InfoCard title="Workflow definition">
-            <div style={{ height: '600px' }}>
-              <WorkflowEditor
-                kind={EditorViewKind.EXTENDED_DIAGRAM_VIEWER}
-                workflowId={workflowOverviewDTO.workflowId}
-                format={workflowOverviewDTO.format}
-              />
-            </div>
+            <ServerlessWorkflowEditor
+              format={workflowOverviewDTO.format}
+              loadingWorkflowSource={loading}
+              workflowSource={value.data}
+              errorWorkflowSource={error}
+            />
           </InfoCard>
-        )}
-      </Grid>
-    </>
+        </Grid>
+      )}
+    </Grid>
   );
 };

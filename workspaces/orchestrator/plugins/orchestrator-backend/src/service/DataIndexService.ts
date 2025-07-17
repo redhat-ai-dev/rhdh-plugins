@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Backstage Authors
+ * Copyright Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import { LoggerService } from '@backstage/backend-plugin-api';
 
 import { Client, fetchExchange, gql } from '@urql/core';
@@ -20,7 +21,6 @@ import { Client, fetchExchange, gql } from '@urql/core';
 import {
   Filter,
   fromWorkflowSource,
-  getWorkflowCategory,
   IntrospectionField,
   parseWorkflowVariables,
   ProcessInstance,
@@ -101,10 +101,10 @@ export class DataIndexService {
 
     this.logger.debug(`Introspection query result: ${JSON.stringify(result)}`);
 
-    if (result?.error) {
-      this.logger.error(`Error executing introspection query ${result.error}`);
-      throw result.error;
-    }
+    this.handleGraphqlClientError(
+      'Error executing introspection query',
+      result,
+    );
 
     const pairs: IntrospectionField[] = [];
     if (result?.data?.__type?.inputFields) {
@@ -139,10 +139,7 @@ export class DataIndexService {
       `Get workflow definition result: ${JSON.stringify(result)}`,
     );
 
-    if (result.error) {
-      this.logger.error(`Error fetching workflow definition ${result.error}`);
-      throw result.error;
-    }
+    this.handleGraphqlClientError('Error fetching workflow definition', result);
 
     const processDefinitions = result.data.ProcessDefinitions as WorkflowInfo[];
 
@@ -163,10 +160,10 @@ export class DataIndexService {
       `Get workflow service urls result: ${JSON.stringify(result)}`,
     );
 
-    if (result.error) {
-      this.logger.error(`Error fetching workflow service urls ${result.error}`);
-      throw result.error;
-    }
+    this.handleGraphqlClientError(
+      'Error fetching workflow service urls',
+      result,
+    );
 
     const processDefinitions = result.data.ProcessDefinitions as WorkflowInfo[];
     return processDefinitions
@@ -217,12 +214,10 @@ export class DataIndexService {
       `Get workflow definitions result: ${JSON.stringify(result)}`,
     );
 
-    if (result.error) {
-      this.logger.error(
-        `Error fetching data index swf results ${result.error}`,
-      );
-      throw result.error;
-    }
+    this.handleGraphqlClientError(
+      'Error fetching data index swf results',
+      result,
+    );
 
     return result.data.ProcessDefinitions;
   }
@@ -236,9 +231,10 @@ export class DataIndexService {
     if (pagination) pagination.sortField ??= FETCH_PROCESS_INSTANCES_SORT_FIELD;
 
     const processIdNotNullCondition = 'processId: {isNull: false}';
-    const definitionIdsCondition = definitionIds
-      ? `processId: {in: ${JSON.stringify(definitionIds)}}`
-      : undefined;
+    const definitionIdsCondition =
+      definitionIds && definitionIds.length > 0
+        ? `processId: {in: ${JSON.stringify(definitionIds)}}`
+        : undefined;
     const type = 'ProcessInstance';
     const filterCondition = filter
       ? buildFilterCondition(
@@ -274,7 +270,7 @@ export class DataIndexService {
     const graphQlQuery = buildGraphQlQuery({
       type: 'ProcessInstances',
       queryBody:
-        'id, processName, processId, businessKey, state, start, end, nodes { id }, variables, parentProcessInstance {id, processName, businessKey}',
+        'id, processName, processId, state, start, end, nodes { id }, variables, executionSummary, parentProcessInstance {id, processName, businessKey}',
       whereClause,
       pagination,
     });
@@ -287,10 +283,9 @@ export class DataIndexService {
     this.logger.debug(
       `Fetch process instances result: ${JSON.stringify(result)}`,
     );
-    if (result.error) {
-      this.logger.error(`Error when fetching instances: ${result.error}`);
-      throw result.error;
-    }
+
+    this.handleGraphqlClientError('Error when fetching instances', result);
+
     const processInstancesSrc = result.data ? result.data.ProcessInstances : [];
 
     const processInstances = await Promise.all(
@@ -308,11 +303,7 @@ export class DataIndexService {
         `Workflow defintion is required to fetch instance ${instance.id}`,
       );
     }
-    const workflowDefinitionSrc: WorkflowDefinition = fromWorkflowSource(
-      workflowInfo.source,
-    );
     if (workflowInfo) {
-      instance.category = getWorkflowCategory(workflowDefinitionSrc);
       instance.description = workflowInfo.description;
     }
     return instance;
@@ -329,10 +320,10 @@ export class DataIndexService {
       `Fetch workflow source result: ${JSON.stringify(result)}`,
     );
 
-    if (result.error) {
-      this.logger.error(`Error when fetching workflow source: ${result.error}`);
-      return undefined;
-    }
+    this.handleGraphqlClientError(
+      'Error when fetching workflow source',
+      result,
+    );
 
     const processDefinitions = result.data.ProcessDefinitions as WorkflowInfo[];
 
@@ -357,12 +348,10 @@ export class DataIndexService {
       `Fetch workflow instances result: ${JSON.stringify(result)}`,
     );
 
-    if (result.error) {
-      this.logger.error(
-        `Error when fetching workflow instances: ${result.error}`,
-      );
-      throw result.error;
-    }
+    this.handleGraphqlClientError(
+      'Error when fetching workflow instances',
+      result,
+    );
 
     return result.data.ProcessInstances;
   }
@@ -378,12 +367,10 @@ export class DataIndexService {
       `Fetch process instance variables result: ${JSON.stringify(result)}`,
     );
 
-    if (result.error) {
-      this.logger.error(
-        `Error when fetching process instance variables: ${result.error}`,
-      );
-      throw result.error;
-    }
+    this.handleGraphqlClientError(
+      'Error when fetching process instance variables',
+      result,
+    );
 
     const processInstances = result.data.ProcessInstances as ProcessInstance[];
 
@@ -405,12 +392,10 @@ export class DataIndexService {
       `Fetch process id from instance result: ${JSON.stringify(result)}`,
     );
 
-    if (result.error) {
-      this.logger.error(
-        `Error when fetching process id from instance: ${result.error}`,
-      );
-      throw result.error;
-    }
+    this.handleGraphqlClientError(
+      'Error when fetching process id from instance',
+      result,
+    );
 
     const processInstances = result.data.ProcessInstances as ProcessInstance[];
 
@@ -431,7 +416,7 @@ export class DataIndexService {
           processName
           processId
           serviceUrl
-          businessKey
+          executionSummary
           state
           start
           end
@@ -443,6 +428,7 @@ export class DataIndexService {
             name
             enter
             exit
+            errorMessage
           }
           variables
           parentProcessInstance {
@@ -452,6 +438,7 @@ export class DataIndexService {
           }
           error {
             nodeDefinitionId
+            nodeInstanceId
             message
           }
         }
@@ -466,12 +453,10 @@ export class DataIndexService {
       `Fetch process instance result: ${JSON.stringify(result)}`,
     );
 
-    if (result.error) {
-      this.logger.error(
-        `Error when fetching process instances: ${result.error}`,
-      );
-      throw result.error;
-    }
+    this.handleGraphqlClientError(
+      'Error when fetching process instances',
+      result,
+    );
 
     const processInstances = result.data.ProcessInstances as ProcessInstance[];
 
@@ -479,21 +464,43 @@ export class DataIndexService {
       return undefined;
     }
 
-    const instance = processInstances[0];
+    const instance = this.removeNodes(processInstances[0]);
 
     const workflowInfo = await this.fetchWorkflowInfo(instance.processId);
     if (!workflowInfo?.source) {
       throw new Error(
-        `Workflow defintion is required to fetch instance ${instance.id}`,
+        `Workflow definition is required to fetch instance ${instance.id}`,
       );
     }
     const workflowDefinitionSrc: WorkflowDefinition = fromWorkflowSource(
       workflowInfo.source,
     );
     if (workflowInfo) {
-      instance.category = getWorkflowCategory(workflowDefinitionSrc);
       instance.description = workflowDefinitionSrc.description;
     }
+    return instance;
+  }
+
+  private handleGraphqlClientError(scenario: string, result: any) {
+    if (!result?.error) {
+      return;
+    }
+    this.logger.error(`${scenario} ${result}`);
+    const networkError = result.error.networkError?.cause?.message;
+    if (networkError) {
+      const toThrow = new Error(`${result.error.message}. ${networkError}`);
+      toThrow.name = 'Network Error';
+      throw toThrow;
+    } else {
+      throw result.error;
+    }
+  }
+
+  private removeNodes(instance: ProcessInstance): ProcessInstance {
+    const errorNodeId = instance.error?.nodeInstanceId;
+    instance.nodes = instance.nodes.filter(node => {
+      return !node.errorMessage || node.id === errorNodeId;
+    });
     return instance;
   }
 }

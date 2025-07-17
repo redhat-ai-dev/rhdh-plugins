@@ -1,5 +1,69 @@
 # @red-hat-developer-hub/backstage-plugin-theme
 
+## 0.9.1
+
+### Patch Changes
+
+- 8e33ca2: Use `id` instead of `class` to select components due to differences in classNames in production
+
+## 0.9.0
+
+### Minor Changes
+
+- c353c97: Bump to backstage version 1.39.1
+
+## 0.8.3
+
+### Patch Changes
+
+- 142818d: Added `theme.rhdh.general.pageInset` option for easier customizability. Removed broken global header styles.
+
+## 0.8.2
+
+### Patch Changes
+
+- 275d8b1: Support above-sidebar postiion for global header
+
+## 0.8.1
+
+### Patch Changes
+
+- cf40352: Add CSS for global header
+
+## 0.8.0
+
+### Minor Changes
+
+- 8f9be66: Add support to load the theme as dynamic plugin
+
+## 0.7.0
+
+### Minor Changes
+
+- 7db4caa: Align BackstageHeader, Backstage/MUI Breadcrumbs, BackstageSidebar, and BackstagePage with PF6
+- 7db4caa: **Breaking change**: remove deprecated general.sideBarBackgroundColor
+- 33b6dd1: Align primary color, buttons and tabs styling with PatternFly 6. Add styling for :focus-visible on the tabs.
+
+## 0.6.0
+
+### Minor Changes
+
+- 97ffc75: Backstage version bump to v1.36.1
+
+### Patch Changes
+
+- b1fc395: Some UI bug fix.
+
+## 0.5.0
+
+### Minor Changes
+
+- a571f32: Upgrade Backstage from 0.32.0 to 1.35.0
+
+### Patch Changes
+
+- 106b3d0: Fixing fontColor error while customizing rhdh appearance
+
 ## 0.4.9
 
 ### Patch Changes

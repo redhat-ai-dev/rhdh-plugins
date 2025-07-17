@@ -17,7 +17,6 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import AddIcon from '@mui/icons-material/Add';
 import GitIcon from '@mui/icons-material/GitHub';
 import SnowFlake from '@mui/icons-material/AcUnit';
-import * as React from 'react';
 import { FloatingButton } from './FloatingButton';
 import { Slot } from '../types';
 
@@ -45,21 +44,40 @@ jest.mock('@mui/styles', () => ({
   },
 }));
 
+beforeEach(() => {
+  document.body.innerHTML = '<div class="BackstagePage-root-123"></div>';
+});
+
+const renderFab = (htmlContent: string) => {
+  document.body.innerHTML = htmlContent;
+  render(
+    <FloatingButton
+      floatingButtons={[
+        {
+          icon: <AddIcon />,
+          label: 'Add',
+        },
+      ]}
+      slot={Slot.BOTTOM_LEFT}
+    />,
+  );
+};
+
 describe('Floating Button', () => {
   it('should render a floating button', () => {
-    render(
-      <FloatingButton
-        floatingButtons={[
-          {
-            icon: <AddIcon />,
-            label: 'Add',
-            color: 'primary',
-            toolTip: 'Main menu',
-          },
-        ]}
-        slot={Slot.BOTTOM_LEFT}
-      />,
-    );
+    renderFab('<div class="BackstagePage-root-123"></div>');
+    expect(screen.getByTestId('floating-button')).toBeInTheDocument();
+    expect(screen.getByTestId('AddIcon')).toBeInTheDocument();
+  });
+
+  it('should render a floating button in the UI when the `BackstagePage-root` classname is not found', () => {
+    renderFab('<div class="BackstagePage-xxx-123"></div>');
+    expect(screen.getByTestId('floating-button')).toBeInTheDocument();
+    expect(screen.getByTestId('AddIcon')).toBeInTheDocument();
+  });
+
+  it('should render a floating button when the `BackstagePage-root` classname is not found but the html tag is found', () => {
+    renderFab('<main class="BackstagePage-xxx-123"></div>');
     expect(screen.getByTestId('floating-button')).toBeInTheDocument();
     expect(screen.getByTestId('AddIcon')).toBeInTheDocument();
   });
@@ -107,7 +125,9 @@ describe('Floating Button', () => {
         slot={Slot.BOTTOM_LEFT}
       />,
     );
-    expect(screen.getByTestId('floating-button')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('floating-button-with-submenu'),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('MenuIcon')).toBeInTheDocument();
     const button = screen.getByTestId('MenuIcon');
     fireEvent.click(button);

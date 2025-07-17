@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Backstage Authors
+ * Copyright Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import moment from 'moment';
 
 import {
   ProcessInstance,
   ProcessInstanceState,
   ProcessInstanceStateValues,
-  WorkflowCategory,
   WorkflowDefinition,
   WorkflowExecutionResponse,
   WorkflowFormat,
@@ -37,7 +37,6 @@ interface WorkflowOverviewParams {
   format?: WorkflowFormat;
   lastTriggeredMs?: number;
   lastRunStatus?: ProcessInstanceStateValues;
-  category?: string;
   description?: string;
 }
 export function generateTestWorkflowOverview(
@@ -50,7 +49,6 @@ export function generateTestWorkflowOverview(
     lastTriggeredMs:
       params.lastTriggeredMs ?? Date.parse('2024-02-09T10:34:56Z'),
     lastRunStatus: params.lastRunStatus ?? ProcessInstanceState.Completed,
-    category: params.category ?? 'assessment', // validate input
     description: params.description ?? 'Test Workflow Description',
   };
 }
@@ -128,7 +126,10 @@ export function generateProcessInstance(id: number): ProcessInstance {
     endpoint: 'enpoint/foo',
     serviceUrl: 'service/bar',
     source: 'my-source',
-    category: WorkflowCategory.INFRASTRUCTURE,
+    executionSummary: [
+      'Workflow started at 2025-06-08T11:36:22.967Z',
+      'Workflow completed at 2025-06-08T11:36:22.970Z',
+    ],
     description: 'test description 1',
     variables: {
       foo: 'bar',

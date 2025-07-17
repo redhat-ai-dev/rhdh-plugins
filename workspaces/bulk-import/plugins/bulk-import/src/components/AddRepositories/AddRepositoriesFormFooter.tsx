@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
-import React from 'react';
-
 import { Link } from '@backstage/core-components';
 
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Tooltip from '@mui/material/Tooltip';
-import { makeStyles } from '@mui/styles';
+import Typography from '@mui/material/Typography';
 import { useFormikContext } from 'formik';
 
 import {
@@ -30,38 +28,39 @@ import {
   AddRepositoriesFormValues,
   ApprovalTool,
 } from '../../types';
-
-const useStyles = makeStyles({
-  illustration: {
-    flexDirection: 'row',
-    display: 'flex',
-    justifyContent: 'space-around',
-    overflow: 'scroll',
-  },
-  tooltip: {
-    maxWidth: 'none',
-  },
-});
+import { gitlabFeatureFlag } from '../../utils/repository-utils';
 
 const sPad = (repositories: AddedRepositories) =>
   Object.keys(repositories || []).length > 1 ? 's' : '';
 
 export const AddRepositoriesFormFooter = () => {
-  const styles = useStyles();
   const { values, handleSubmit, isSubmitting } =
     useFormikContext<AddRepositoriesFormValues>();
-  const approvalToolTitle =
-    (values.approvalTool === ApprovalTool.Git
-      ? 'pull request'
-      : 'ServiceNow ticket') + sPad(values.repositories);
-  const submitTitle = `Create ${approvalToolTitle}`;
+
+  const label = {
+    [ApprovalTool.ServiceNow]: {
+      submitTitle: `Create ServiceNow ticket${sPad(values.repositories)}`,
+      toolTipTitle: `Catalog-info.yaml files must be generated before creating a ServiceNow ticket`,
+    },
+    [ApprovalTool.Gitlab]: {
+      submitTitle: `Import`,
+      toolTipTitle:
+        'The Catalog-info.yaml files need to be generated for import.',
+    },
+    [ApprovalTool.Git]: {
+      submitTitle: gitlabFeatureFlag
+        ? 'Import'
+        : `Create pull request${sPad(values.repositories)}`,
+      toolTipTitle: gitlabFeatureFlag
+        ? 'The Catalog-info.yaml files need to be generated for import.'
+        : `Catalog-info.yaml files must be generated before creating a pull request`,
+    },
+  };
 
   const disableCreate =
-    !values.repositories || Object.values(values.repositories).length === 0;
-
-  const toolTipTitle = disableCreate
-    ? `Catalog-info.yaml files must be generated before creating a ${approvalToolTitle}`
-    : null;
+    values.approvalTool === ApprovalTool.Gitlab ||
+    !values.repositories ||
+    Object.values(values.repositories).length === 0;
 
   const submitButton = (
     <Button
@@ -74,7 +73,7 @@ export const AddRepositoriesFormFooter = () => {
         isSubmitting && <CircularProgress size="20px" color="inherit" />
       }
     >
-      {submitTitle}
+      {label[values.approvalTool]?.submitTitle}
     </Button>
   );
 
@@ -100,9 +99,14 @@ export const AddRepositoriesFormFooter = () => {
       }}
       data-testid="add-repository-footer"
     >
-      {toolTipTitle ? (
-        <Tooltip classes={{ tooltip: styles.tooltip }} title={toolTipTitle}>
-          <span>{submitButton}</span>
+      {disableCreate ? (
+        <Tooltip
+          title={label[values.approvalTool]?.toolTipTitle}
+          sx={{
+            maxWidth: 'none',
+          }}
+        >
+          <Typography component="span">{submitButton}</Typography>
         </Tooltip>
       ) : (
         submitButton

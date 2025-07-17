@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Backstage Authors
+ * Copyright Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,29 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import React from 'react';
 
 import { InfoCard } from '@backstage/core-components';
 import { AboutField } from '@backstage/plugin-catalog';
 
-import { Grid, makeStyles } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
+import Grid from '@mui/material/Grid';
+import Skeleton from '@mui/material/Skeleton';
+import { makeStyles } from 'tss-react/mui';
 
-import {
-  ProcessInstanceStatusDTO,
-  WorkflowOverviewDTO,
-} from '@red-hat-developer-hub/backstage-plugin-orchestrator-common';
+import { WorkflowOverviewDTO } from '@red-hat-developer-hub/backstage-plugin-orchestrator-common';
 
-import { VALUE_UNAVAILABLE } from '../../constants';
 import WorkflowOverviewFormatter from '../../dataFormatters/WorkflowOverviewFormatter';
-import { WorkflowInstanceStatusIndicator } from '../WorkflowInstanceStatusIndicator';
+import { WorkflowStatus } from '../WorkflowStatus';
 
-const useStyles = makeStyles({
+const useStyles = makeStyles()(() => ({
   details: {
     overflowY: 'auto',
-    height: '15rem',
+    minHeight: '10rem',
+    maxHeight: '15rem',
   },
-});
+}));
 
 const WorkflowDefinitionDetailsCard = ({
   loading,
@@ -44,7 +43,7 @@ const WorkflowDefinitionDetailsCard = ({
   loading: boolean;
   workflowOverview?: WorkflowOverviewDTO;
 }) => {
-  const classes = useStyles();
+  const { classes } = useStyles();
 
   const formattedWorkflowOverview = React.useMemo(
     () =>
@@ -54,48 +53,27 @@ const WorkflowDefinitionDetailsCard = ({
     [workflowOverview],
   );
 
-  const details = React.useMemo(
-    () => [
-      {
-        label: 'category',
-        value: formattedWorkflowOverview?.category,
-      },
-
-      {
-        label: 'last run',
-        value: formattedWorkflowOverview?.lastTriggered,
-      },
-      {
-        label: 'last run status',
-        value: formattedWorkflowOverview?.lastRunStatus,
-        children:
-          formattedWorkflowOverview?.lastRunStatus !== VALUE_UNAVAILABLE ? (
-            <WorkflowInstanceStatusIndicator
-              status={
-                formattedWorkflowOverview?.lastRunStatus as ProcessInstanceStatusDTO
-              }
-              lastRunId={formattedWorkflowOverview?.lastRunId}
-            />
-          ) : (
-            VALUE_UNAVAILABLE
-          ),
-      },
-    ],
-    [formattedWorkflowOverview],
-  );
-
   return (
     <InfoCard title="Details" className={classes.details}>
-      <Grid container spacing={3} alignContent="flex-start">
-        {details?.map(({ label, value, children }) => (
-          <Grid item md={3} key={label}>
-            {/* AboutField requires the value to be defined as a prop as well */}
-            <AboutField label={label} value={value}>
-              {loading ? <Skeleton variant="text" /> : children || value}
-            </AboutField>
-          </Grid>
-        ))}
-        <Grid item md={3}>
+      <Grid container spacing={7} alignContent="flex-start" wrap="nowrap">
+        <Grid item key="workflow status">
+          {/* AboutField requires the value to be defined as a prop as well */}
+          <AboutField
+            label="workflow status"
+            value={formattedWorkflowOverview?.availablity}
+          >
+            {loading ? (
+              <Skeleton variant="text" />
+            ) : (
+              <b>
+                <WorkflowStatus
+                  availability={formattedWorkflowOverview?.availablity}
+                />
+              </b>
+            )}
+          </AboutField>
+        </Grid>
+        <Grid item md={7}>
           <AboutField
             label="description"
             value={formattedWorkflowOverview?.description}

@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-import React from 'react';
+import type { MouseEvent } from 'react';
+import { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { Table } from '@backstage/core-components';
 
-import { useDeleteDialog, useDrawer } from '@janus-idp/shared-react';
 import Box from '@mui/material/Box';
 import TablePagination from '@mui/material/TablePagination';
 
@@ -29,7 +29,10 @@ import {
   AddRepositoryData,
   SortingOrderEnum,
 } from '../../types';
+import { gitlabFeatureFlag } from '../../utils/repository-utils';
 import { RepositoriesHeader } from '../AddRepositories/RepositoriesHeader';
+import { useDeleteDialog } from '../DeleteDialogContext';
+import { useDrawer } from '../DrawerContext';
 import { AddedRepositoriesTableBody } from './AddedRepositoriesTableBody';
 import DeleteRepositoryDialog from './DeleteRepositoryDialog';
 import EditCatalogInfo from './EditCatalogInfo';
@@ -40,17 +43,15 @@ export const RepositoriesList = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
-  const [order, setOrder] = React.useState<SortingOrderEnum>(
-    SortingOrderEnum.Asc,
-  );
-  const [orderBy, setOrderBy] = React.useState<string>('repoName');
+  const [order, setOrder] = useState<SortingOrderEnum>(SortingOrderEnum.Asc);
+  const [orderBy, setOrderBy] = useState<string>('repoName');
   const { openDialog, setOpenDialog, deleteComponent } = useDeleteDialog();
   const { openDrawer, setOpenDrawer, drawerData } = useDrawer();
-  const [pageNumber, setPageNumber] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(5);
-  const [debouncedSearch, setDebouncedSearch] = React.useState('');
+  const [pageNumber, setPageNumber] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  const orderByColumn = React.useMemo(() => {
+  const orderByColumn = useMemo(() => {
     return orderBy?.replace(/\.([a-zA-Z])/g, (_, char) =>
       char.toUpperCase('en-US'),
     ) as keyof typeof AddedRepositoryColumnNameEnum;
@@ -83,10 +84,7 @@ export const RepositoriesList = () => {
     setOpenDrawer(false);
   };
 
-  const handleRequestSort = (
-    _event: React.MouseEvent<unknown>,
-    property: string,
-  ) => {
+  const handleRequestSort = (_event: MouseEvent<unknown>, property: string) => {
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? SortingOrderEnum.Desc : SortingOrderEnum.Asc);
     setOrderBy(property);
@@ -100,7 +98,13 @@ export const RepositoriesList = () => {
     setDebouncedSearch(str);
     setPageNumber(0);
   };
-
+  const baseTitle = gitlabFeatureFlag
+    ? 'Imported entities'
+    : 'Added repositories';
+  const finalTitle =
+    importJobs?.totalJobs === 0
+      ? baseTitle
+      : `${baseTitle} (${importJobs.totalJobs})`;
   return (
     <>
       <RepositoriesAddLink />
@@ -108,11 +112,7 @@ export const RepositoriesList = () => {
         data={importJobs.addedRepositories ?? []}
         columns={RepositoriesListColumns}
         onSearchChange={handleSearch}
-        title={
-          importJobs?.totalJobs === 0
-            ? 'Added repositories'
-            : `Added repositories (${importJobs.totalJobs})`
-        }
+        title={finalTitle}
         components={{
           Header: () => (
             <RepositoriesHeader

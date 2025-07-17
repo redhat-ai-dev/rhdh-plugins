@@ -22,15 +22,16 @@ The `redhat-developer/rhdh-plugins` repository is designed as a collaborative sp
     - [Next steps](#next-steps)
     - [Maintenance of older versions](#maintenance-of-older-versions)
   - [API Reports](#api-reports)
-  - [Maintaining Plugins](#maintaining-plugins)
+  - [Submitting a Pull Request](#submitting-a-pull-request)
+  - [Plugin Owner Responsibilities](#plugin-owner-responsibilities)
+    - [Responsibilities](#responsibilities)
     - [Keeping Workspaces Up to Date with Backstage](#keeping-workspaces-up-to-date-with-backstage)
       - [Process](#process)
     - [Updating Dependencies with Renovate](#updating-dependencies-with-renovate)
       - [Types of PRs](#types-of-prs)
         - [Dependency Updates](#dependency-updates)
         - [Security Fixes](#security-fixes)
-      - [Responsibilities](#responsibilities)
-  - [Submitting a Pull Request](#submitting-a-pull-request)
+    - [Opt-in to Knip Reports Check](#opt-in-to-knip-reports-check)
 
 ## License
 
@@ -64,7 +65,7 @@ Most plugins come with a standalone runner that you should be able to utilize in
 
 There could be times when there is a need for a more rich development environment for a workspace. Say that the workspace and it's plugin depend on a full catalog, and maybe the kubernetes plugin already running too, that could be a bit of a pain to set up. In that case, there might be a full Backstage environment that you can run with `yarn dev` in the workspace root, which will start up a full Backstage environment located in `$WORKSPACE_ROOT/packages/app` and `$WORKSPACE_ROOT/packages/backend`.
 
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > Both the full Backstage environment and standalone runners are configured on a per-workspace basis. Be sure to check the workspace `README.md` for specific instructions on setting up the development environment for each plugin.
 
 ## Coding Guidelines
@@ -99,7 +100,7 @@ To create a changeset, follow these steps:
 
 Once the changeset is merged, it will trigger the release process for the plugin and create a "Version packages ($workspace_name)" PR. Once the PR is merged, a new version of the plugin will be published based on the type of change made.
 
-> [!NOTE]  
+> [!NOTE]
 > It's important to create a changeset for each individual change you make to a plugin. This ensures that the release process is properly managed and that dependencies between plugins are correctly updated.
 
 ## Release
@@ -115,7 +116,7 @@ A release is automatically triggered by merging the plugins â€œVersion Packagesâ
 
 For workspaces the name should reflect the name of the plugins contained in a simple manner (e.g. for the plugins `todo` & `todo-backend` the workspace would be called `todo`).
 
-For plugins we will continue to follow the naming pattern suggested by the ADR on the [backstage](https://github.com/backstage/backstage/tree/master) repository: https://backstage.io/docs/architecture-decisions/adrs-adr011.
+For plugins we will continue to follow the naming pattern suggested by the ADR on the [backstage](https://github.com/backstage/backstage/tree/master) repository: <https://backstage.io/docs/architecture-decisions/adrs-adr011>.
 
 You can create a workspace by running the following:
 
@@ -208,6 +209,7 @@ cp -r ../existing-plugins/plugins/plugin-name plugins/
      ```
 
    - For `backstage/rhdh-plugins`:
+
      ```bash
      git checkout -b "migrate-workspace-name"
      ```
@@ -220,13 +222,14 @@ cp -r ../existing-plugins/plugins/plugin-name plugins/
    - The `maintainers` array of arguments is the github usernames of those individuals that should be listed as the maintainers for the migrated plugins. Please separate each maintainer by a comma while supplying this value.
 
    - example usage:
+
      ```bash
       yarn rhdh-cli janus-plugin migrate --monorepo-path ../backstage-plugins --workspace-name workspace-name --branch deprecate-workspace-name --maintainers @maintainer1,@maintainer2,@maintainer3
      ```
 
 4. The script will generate changesets in both repositories. Be sure to commit these changes and open pull requests.
 
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > This script updates metadata commonly found across all plugins. Please review your migrated plugins to ensure that all references to "janus" have been updated to point to "rhdh-plugins."
 
 5. If you run into CI issues take a look at [this github gist](https://gist.github.com/Fortune-Ndlovu/1562789f3905b4fe818b9079a3032982) which outlines the process taken to migrate argocd plugins in great detail.
@@ -262,14 +265,39 @@ There are two ways you can do this:
 
 Each plugin/package has its own API Report which means you might see more than one file updated or created depending on your changes. These changes will then need to be committed as well.
 
-## Maintaining Plugins
+## Submitting a Pull Request
+
+When you've got your contribution working, tested, and committed to your branch it's time to create a Pull Request (PR). If you are unsure how to do this GitHub's [Creating a pull request from a fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork) documentation will help you with that.
+
+> [!NOTE]
+> Only [repository maintainers](https://github.com/orgs/redhat-developer/teams/rhdh-plugins-maintainers) can bypass the SonarCloud test. We typically grant a one-time exception for new plugins that require a full application instead of a standalone development server. If this applies to your pull request, please mention it in the description.
+
+## Plugin Owner Responsibilities
+
+> [!NOTE]
+> To carry out your responsibilities as a plugin owner, you will need write access to the repository. If you are a plugin owner and do not have write access, please reach out to one of the [repository maintainers](https://github.com/orgs/redhat-developer/teams/rhdh-plugins-maintainers).
+
+As a plugin owner, you are responsible for the ongoing health and maintenance of your plugin(s) in this repository.
+
+### Responsibilities
+
+- **Review, approve, and merge PRs** opened against your plugin, including:
+  - Community contributions
+  - Renovate PRs (See [Updating Dependencies with Renovate](#updating-dependencies-with-renovate))
+  - Dependabot PRs
+  - Version package PRs
+- **Keep your workspace(s) up to date** with the latest Backstage version supported by RHDH.
+  See [Keeping Workspaces Up to Date](#keeping-workspaces-up-to-date-with-backstage).
+- **Manage security updates and patches**:
+  Work with your security team to address vulnerabilities according to SLA and product lifecycle requirements.
+  Since this repository does not maintain release branches, Renovate only opens PRs against the latest code.
+  If your plugin is used in multiple product versions, you are responsible for backporting critical patches.
+- **Justify Dependency-Related PR closures**:
+  If you choose not to merge a Renovate or dependency-related PR, include a brief explanation when closing it.
 
 ### Keeping Workspaces Up to Date with Backstage
 
 To keep plugins in the various workspaces up to date with Backstage we have a [Version Bump Workflow](https://github.com/redhat-developer/rhdh-plugins/actions/workflows/version-bump.yml) in place, similar to the one that is used in the [backstage/community-plugins](https://github.com/backstage/community-plugins) repository.
-
-> [!NOTE]
-> To run this workflow, you will need write access to the repository. If you are a plugin owner and do not have write access, please reach out to one of the repository admins (@bethgriggs, @nickboldt, @04kash).
 
 #### Process
 
@@ -301,16 +329,8 @@ This repository uses [Renovate](https://docs.renovatebot.com/) to automatically 
 
 - PRs can also be opened for security alerts. These PRs are distinguishable with a `[security]`suffix in its title and will also have a `security` label.
 
-#### Responsibilities
+### Opt-in to Knip Reports Check
 
-As a plugin owner,
+Plugin owners can opt in to Knip reports check in CI by creating a `bcp.json` file in the root of their workspace (`workspaces/${WORKSPACE}/bcp.json`) and adding `{ "knip-reports": true }`. This ensures that knip reports in your workspace stay up to date.
 
-- You are responsible for reviewing, approving, and merging the PRs opened against your plugins
-- If you decide to not accept the Renovate fixes, provide a justification before closing.
-- Work with your security team to ensure vulnerabilities are fixed according to their SLA timelines and Product Lifecycle requirements.
-
-Because we do not have release branches in this repo, Renovate will only create PRs against the latest code. Plugin owners will need to ensure any necessary patches are backported if their plugins are maintained in multiple product versions.
-
-## Submitting a Pull Request
-
-When you've got your contribution working, tested, and committed to your branch it's time to create a Pull Request (PR). If you are unsure how to do this GitHub's [Creating a pull request from a fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork) documentation will help you with that.
+[Knip](https://knip.dev/) is a tool that helps with clean-up and maintenance by identifying unused dependencies within workspaces. Regularly reviewing and addressing these reports can significantly improve code quality and reduce bloat.

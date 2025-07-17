@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-import React from 'react';
+import { useMemo } from 'react';
 import { AppTheme } from '@backstage/core-plugin-api';
 import { themes } from '@backstage/theme';
 
-import LightIcon from '@material-ui/icons/WbSunny';
-import DarkIcon from '@material-ui/icons/Brightness2';
+import LightIcon from '@mui/icons-material/WbSunnyRounded';
+import DarkIcon from '@mui/icons-material/Brightness2Rounded';
 import { createTheme } from '@mui/material/styles';
 
 import {
@@ -29,6 +29,10 @@ import {
 } from './components/ThemeProvider';
 import * as backstage from './backstage';
 import * as rhdh from './rhdh';
+
+export const lightThemeProvider = createThemeProviderForThemeName('light');
+
+export const darkThemeProvider = createThemeProviderForThemeName('dark');
 
 export const getAllThemes = (): AppTheme[] => {
   return [
@@ -92,7 +96,7 @@ export const getAllThemes = (): AppTheme[] => {
 };
 
 export const useAllThemes = (): AppTheme[] => {
-  return React.useMemo(() => getAllThemes(), []);
+  return useMemo(() => getAllThemes(), []);
 };
 
 export const getThemes = (): AppTheme[] => {
@@ -115,11 +119,11 @@ export const getThemes = (): AppTheme[] => {
 };
 
 export const useThemes = (): AppTheme[] => {
-  return React.useMemo(() => getThemes(), []);
+  return useMemo(() => getThemes(), []);
 };
 
 export const useLoaderTheme = () => {
-  return React.useMemo(() => {
+  return useMemo(() => {
     const latestTheme = localStorage.getItem('theme');
     const mode = latestTheme?.includes('dark') ? 'dark' : 'light';
     const variant = latestTheme?.includes('backstage') ? 'backstage' : 'rhdh';

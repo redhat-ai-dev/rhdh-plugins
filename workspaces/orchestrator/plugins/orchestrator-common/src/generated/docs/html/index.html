@@ -846,16 +846,19 @@ ul.nav-tabs {
   <script>
     // Script section to load models into a JS Var
     var defs = {}
-    defs["AssessedProcessInstanceDTO"] = {
-  "required" : [ "instance" ],
+    defs["AuthToken"] = {
+  "required" : [ "provider", "token" ],
   "properties" : {
-    "instance" : {
-      "$ref" : "#/components/schemas/ProcessInstanceDTO"
+    "provider" : {
+      "type" : "string",
+      "description" : "The auth token provider name"
     },
-    "assessedBy" : {
-      "$ref" : "#/components/schemas/ProcessInstanceDTO"
+    "token" : {
+      "type" : "string",
+      "description" : "The auth token itself retrieved from the above specified provider name"
     }
-  }
+  },
+  "additionalProperties" : false
 };
     defs["ErrorResponse"] = {
   "required" : [ "message" ],
@@ -877,6 +880,13 @@ ul.nav-tabs {
     "inputData" : {
       "type" : "object",
       "additionalProperties" : false
+    },
+    "authTokens" : {
+      "minItems" : 0,
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/components/schemas/AuthToken"
+      }
     }
   }
 };
@@ -927,6 +937,8 @@ ul.nav-tabs {
     "$ref" : "#/components/schemas/LogicalFilter"
   }, {
     "$ref" : "#/components/schemas/FieldFilter"
+  }, {
+    "$ref" : "#/components/schemas/NestedFilter"
   } ]
 };
     defs["GetOverviewsRequestParams"] = {
@@ -963,6 +975,24 @@ ul.nav-tabs {
       }
     }
   }
+};
+    defs["NestedFilter"] = {
+  "required" : [ "field", "nested" ],
+  "properties" : {
+    "field" : {
+      "type" : "string"
+    },
+    "nested" : {
+      "$ref" : "#/components/schemas/NestedFilter_nested"
+    }
+  }
+};
+    defs["NestedFilter_nested"] = {
+  "oneOf" : [ {
+    "$ref" : "#/components/schemas/FieldFilter"
+  }, {
+    "$ref" : "#/components/schemas/NestedFilter"
+  } ]
 };
     defs["NodeInstanceDTO"] = {
   "required" : [ "id" ],
@@ -1050,17 +1080,20 @@ ul.nav-tabs {
     "duration" : {
       "type" : "string"
     },
-    "category" : {
-      "$ref" : "#/components/schemas/WorkflowCategoryDTO"
-    },
     "description" : {
       "type" : "string"
     },
     "workflowdata" : {
       "$ref" : "#/components/schemas/WorkflowDataDTO"
     },
-    "businessKey" : {
+    "initiatorEntity" : {
       "type" : "string"
+    },
+    "executionSummary" : {
+      "type" : "array",
+      "items" : {
+        "type" : "string"
+      }
     },
     "nodes" : {
       "type" : "array",
@@ -1119,13 +1152,8 @@ ul.nav-tabs {
     }
   }
 };
-    defs["WorkflowCategoryDTO"] = {
-  "type" : "string",
-  "description" : "Category of the workflow",
-  "enum" : [ "assessment", "infrastructure" ]
-};
     defs["WorkflowDTO"] = {
-  "required" : [ "category", "format", "id" ],
+  "required" : [ "format", "id" ],
   "properties" : {
     "id" : {
       "minLength" : 1,
@@ -1139,9 +1167,6 @@ ul.nav-tabs {
     },
     "format" : {
       "$ref" : "#/components/schemas/WorkflowFormatDTO"
-    },
-    "category" : {
-      "$ref" : "#/components/schemas/WorkflowCategoryDTO"
     },
     "description" : {
       "type" : "string",
@@ -1208,11 +1233,11 @@ ul.nav-tabs {
     "lastRunStatus" : {
       "$ref" : "#/components/schemas/ProcessInstanceStatusDTO"
     },
-    "category" : {
-      "$ref" : "#/components/schemas/WorkflowCategoryDTO"
-    },
     "description" : {
       "type" : "string"
+    },
+    "isAvailable" : {
+      "type" : "boolean"
     }
   }
 };
@@ -1246,11 +1271,6 @@ ul.nav-tabs {
 };
     defs["WorkflowResultDTO"] = {
   "properties" : {
-    "completedWith" : {
-      "type" : "string",
-      "description" : "The state of workflow completion.",
-      "enum" : [ "error", "success" ]
-    },
     "message" : {
       "type" : "string",
       "description" : "High-level summary of the current status, free-form text, human readable."
@@ -1368,6 +1388,9 @@ ul.nav-tabs {
                     </li>
                     <li data-group="Default" data-name="getWorkflowsOverview" class="">
                       <a href="#api-Default-getWorkflowsOverview">getWorkflowsOverview</a>
+                    </li>
+                    <li data-group="Default" data-name="pingWorkflowServiceById" class="">
+                      <a href="#api-Default-pingWorkflowServiceById">pingWorkflowServiceById</a>
                     </li>
                     <li data-group="Default" data-name="retriggerInstance" class="">
                       <a href="#api-Default-retriggerInstance">retriggerInstance</a>
@@ -1849,9 +1872,16 @@ The identifier of the workflow instance to abort.
                             <pre class="prettyprint"><code class="language-bsh">curl -X POST \
  -H "Accept: application/json" \
  -H "Content-Type: application/json" \
- "http://localhost/v2/workflows/{workflowId}/execute?businessKey=businessKey_example" \
+ "http://localhost/v2/workflows/{workflowId}/execute" \
  -d '{
-  &quot;inputData&quot; : &quot;{}&quot;
+  &quot;inputData&quot; : &quot;{}&quot;,
+  &quot;authTokens&quot; : [ {
+    &quot;provider&quot; : &quot;provider&quot;,
+    &quot;token&quot; : &quot;token&quot;
+  }, {
+    &quot;provider&quot; : &quot;provider&quot;,
+    &quot;token&quot; : &quot;token&quot;
+  } ]
 }'
 </code></pre>
                           </div>
@@ -1871,10 +1901,9 @@ public class DefaultApiExample {
         DefaultApi apiInstance = new DefaultApi();
         String workflowId = workflowId_example; // String | ID of the workflow to execute
         ExecuteWorkflowRequestDTO executeWorkflowRequestDTO = ; // ExecuteWorkflowRequestDTO | 
-        String businessKey = businessKey_example; // String | ID of the parent workflow
 
         try {
-            ExecuteWorkflowResponseDTO result = apiInstance.executeWorkflow(workflowId, executeWorkflowRequestDTO, businessKey);
+            ExecuteWorkflowResponseDTO result = apiInstance.executeWorkflow(workflowId, executeWorkflowRequestDTO);
             System.out.println(result);
         } catch (ApiException e) {
             System.err.println("Exception when calling DefaultApi#executeWorkflow");
@@ -1892,10 +1921,9 @@ final api_instance = DefaultApi();
 
 final String workflowId = new String(); // String | ID of the workflow to execute
 final ExecuteWorkflowRequestDTO executeWorkflowRequestDTO = new ExecuteWorkflowRequestDTO(); // ExecuteWorkflowRequestDTO | 
-final String businessKey = new String(); // String | ID of the parent workflow
 
 try {
-    final result = await api_instance.executeWorkflow(workflowId, executeWorkflowRequestDTO, businessKey);
+    final result = await api_instance.executeWorkflow(workflowId, executeWorkflowRequestDTO);
     print(result);
 } catch (e) {
     print('Exception when calling DefaultApi->executeWorkflow: $e\n');
@@ -1912,10 +1940,9 @@ public class DefaultApiExample {
         DefaultApi apiInstance = new DefaultApi();
         String workflowId = workflowId_example; // String | ID of the workflow to execute
         ExecuteWorkflowRequestDTO executeWorkflowRequestDTO = ; // ExecuteWorkflowRequestDTO | 
-        String businessKey = businessKey_example; // String | ID of the parent workflow
 
         try {
-            ExecuteWorkflowResponseDTO result = apiInstance.executeWorkflow(workflowId, executeWorkflowRequestDTO, businessKey);
+            ExecuteWorkflowResponseDTO result = apiInstance.executeWorkflow(workflowId, executeWorkflowRequestDTO);
             System.out.println(result);
         } catch (ApiException e) {
             System.err.println("Exception when calling DefaultApi#executeWorkflow");
@@ -1935,12 +1962,10 @@ public class DefaultApiExample {
 DefaultApi *apiInstance = [[DefaultApi alloc] init];
 String *workflowId = workflowId_example; // ID of the workflow to execute (default to null)
 ExecuteWorkflowRequestDTO *executeWorkflowRequestDTO = ; // 
-String *businessKey = businessKey_example; // ID of the parent workflow (optional) (default to null)
 
 // Execute a workflow
 [apiInstance executeWorkflowWith:workflowId
     executeWorkflowRequestDTO:executeWorkflowRequestDTO
-    businessKey:businessKey
               completionHandler: ^(ExecuteWorkflowResponseDTO output, NSError* error) {
     if (output) {
         NSLog(@"%@", output);
@@ -1959,9 +1984,6 @@ String *businessKey = businessKey_example; // ID of the parent workflow (optiona
 var api = new OrchestratorPlugin.DefaultApi()
 var workflowId = workflowId_example; // {String} ID of the workflow to execute
 var executeWorkflowRequestDTO = ; // {ExecuteWorkflowRequestDTO} 
-var opts = {
-  'businessKey': businessKey_example // {String} ID of the parent workflow
-};
 
 var callback = function(error, data, response) {
   if (error) {
@@ -1970,7 +1992,7 @@ var callback = function(error, data, response) {
     console.log('API called successfully. Returned data: ' + data);
   }
 };
-api.executeWorkflow(workflowId, executeWorkflowRequestDTO, opts, callback);
+api.executeWorkflow(workflowId, executeWorkflowRequestDTO, callback);
 </code></pre>
                             </div>
 
@@ -1995,11 +2017,10 @@ namespace Example
             var apiInstance = new DefaultApi();
             var workflowId = workflowId_example;  // String | ID of the workflow to execute (default to null)
             var executeWorkflowRequestDTO = new ExecuteWorkflowRequestDTO(); // ExecuteWorkflowRequestDTO | 
-            var businessKey = businessKey_example;  // String | ID of the parent workflow (optional)  (default to null)
 
             try {
                 // Execute a workflow
-                ExecuteWorkflowResponseDTO result = apiInstance.executeWorkflow(workflowId, executeWorkflowRequestDTO, businessKey);
+                ExecuteWorkflowResponseDTO result = apiInstance.executeWorkflow(workflowId, executeWorkflowRequestDTO);
                 Debug.WriteLine(result);
             } catch (Exception e) {
                 Debug.Print("Exception when calling DefaultApi.executeWorkflow: " + e.Message );
@@ -2018,10 +2039,9 @@ require_once(__DIR__ . '/vendor/autoload.php');
 $api_instance = new OpenAPITools\Client\Api\DefaultApi();
 $workflowId = workflowId_example; // String | ID of the workflow to execute
 $executeWorkflowRequestDTO = ; // ExecuteWorkflowRequestDTO | 
-$businessKey = businessKey_example; // String | ID of the parent workflow
 
 try {
-    $result = $api_instance->executeWorkflow($workflowId, $executeWorkflowRequestDTO, $businessKey);
+    $result = $api_instance->executeWorkflow($workflowId, $executeWorkflowRequestDTO);
     print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling DefaultApi->executeWorkflow: ', $e->getMessage(), PHP_EOL;
@@ -2038,10 +2058,9 @@ use WWW::OPenAPIClient::DefaultApi;
 my $api_instance = WWW::OPenAPIClient::DefaultApi->new();
 my $workflowId = workflowId_example; # String | ID of the workflow to execute
 my $executeWorkflowRequestDTO = WWW::OPenAPIClient::Object::ExecuteWorkflowRequestDTO->new(); # ExecuteWorkflowRequestDTO | 
-my $businessKey = businessKey_example; # String | ID of the parent workflow
 
 eval {
-    my $result = $api_instance->executeWorkflow(workflowId => $workflowId, executeWorkflowRequestDTO => $executeWorkflowRequestDTO, businessKey => $businessKey);
+    my $result = $api_instance->executeWorkflow(workflowId => $workflowId, executeWorkflowRequestDTO => $executeWorkflowRequestDTO);
     print Dumper($result);
 };
 if ($@) {
@@ -2060,11 +2079,10 @@ from pprint import pprint
 api_instance = openapi_client.DefaultApi()
 workflowId = workflowId_example # String | ID of the workflow to execute (default to null)
 executeWorkflowRequestDTO =  # ExecuteWorkflowRequestDTO | 
-businessKey = businessKey_example # String | ID of the parent workflow (optional) (default to null)
 
 try:
     # Execute a workflow
-    api_response = api_instance.execute_workflow(workflowId, executeWorkflowRequestDTO, businessKey=businessKey)
+    api_response = api_instance.execute_workflow(workflowId, executeWorkflowRequestDTO)
     pprint(api_response)
 except ApiException as e:
     print("Exception when calling DefaultApi->executeWorkflow: %s\n" % e)</code></pre>
@@ -2076,10 +2094,9 @@ except ApiException as e:
 pub fn main() {
     let workflowId = workflowId_example; // String
     let executeWorkflowRequestDTO = ; // ExecuteWorkflowRequestDTO
-    let businessKey = businessKey_example; // String
 
     let mut context = DefaultApi::Context::default();
-    let result = client.executeWorkflow(workflowId, executeWorkflowRequestDTO, businessKey, &context).wait();
+    let result = client.executeWorkflow(workflowId, executeWorkflowRequestDTO, &context).wait();
 
     println!("{:?}", result);
 }
@@ -2174,33 +2191,6 @@ $(document).ready(function() {
                             </table>
 
 
-                            <div class="methodsubtabletitle">Query parameters</div>
-                            <table id="methodsubtable">
-                              <tr>
-                                <th width="150px">Name</th>
-                                <th>Description</th>
-                              </tr>
-                                <tr><td style="width:150px;">businessKey</td>
-<td>
-
-
-    <div id="d2e199_executeWorkflow_businessKey">
-        <div class="json-schema-view">
-            <div class="primitive">
-                <span class="type">
-                    String
-                </span>
-
-                    <div class="inner description marked">
-ID of the parent workflow
-                    </div>
-            </div>
-        </div>
-    </div>
-</td>
-</tr>
-
-                            </table>
 
                           <h2>Responses</h2>
                             <h3 id="examples-Default-executeWorkflow-title-200"></h3>
@@ -2366,7 +2356,7 @@ ID of the parent workflow
                           <div class="tab-pane active" id="examples-Default-getInstanceById-0-curl">
                             <pre class="prettyprint"><code class="language-bsh">curl -X GET \
  -H "Accept: application/json" \
- "http://localhost/v2/workflows/instances/{instanceId}?includeAssessment=true"
+ "http://localhost/v2/workflows/instances/{instanceId}"
 </code></pre>
                           </div>
                           <div class="tab-pane" id="examples-Default-getInstanceById-0-java">
@@ -2384,10 +2374,9 @@ public class DefaultApiExample {
         // Create an instance of the API class
         DefaultApi apiInstance = new DefaultApi();
         String instanceId = instanceId_example; // String | ID of the workflow instance
-        Boolean includeAssessment = true; // Boolean | Whether to include assessment
 
         try {
-            AssessedProcessInstanceDTO result = apiInstance.getInstanceById(instanceId, includeAssessment);
+            ProcessInstanceDTO result = apiInstance.getInstanceById(instanceId);
             System.out.println(result);
         } catch (ApiException e) {
             System.err.println("Exception when calling DefaultApi#getInstanceById");
@@ -2404,10 +2393,9 @@ public class DefaultApiExample {
 final api_instance = DefaultApi();
 
 final String instanceId = new String(); // String | ID of the workflow instance
-final Boolean includeAssessment = new Boolean(); // Boolean | Whether to include assessment
 
 try {
-    final result = await api_instance.getInstanceById(instanceId, includeAssessment);
+    final result = await api_instance.getInstanceById(instanceId);
     print(result);
 } catch (e) {
     print('Exception when calling DefaultApi->getInstanceById: $e\n');
@@ -2423,10 +2411,9 @@ public class DefaultApiExample {
     public static void main(String[] args) {
         DefaultApi apiInstance = new DefaultApi();
         String instanceId = instanceId_example; // String | ID of the workflow instance
-        Boolean includeAssessment = true; // Boolean | Whether to include assessment
 
         try {
-            AssessedProcessInstanceDTO result = apiInstance.getInstanceById(instanceId, includeAssessment);
+            ProcessInstanceDTO result = apiInstance.getInstanceById(instanceId);
             System.out.println(result);
         } catch (ApiException e) {
             System.err.println("Exception when calling DefaultApi#getInstanceById");
@@ -2445,12 +2432,10 @@ public class DefaultApiExample {
 // Create an instance of the API class
 DefaultApi *apiInstance = [[DefaultApi alloc] init];
 String *instanceId = instanceId_example; // ID of the workflow instance (default to null)
-Boolean *includeAssessment = true; // Whether to include assessment (optional) (default to false)
 
 // Get Workflow Instance by ID
 [apiInstance getInstanceByIdWith:instanceId
-    includeAssessment:includeAssessment
-              completionHandler: ^(AssessedProcessInstanceDTO output, NSError* error) {
+              completionHandler: ^(ProcessInstanceDTO output, NSError* error) {
     if (output) {
         NSLog(@"%@", output);
     }
@@ -2467,9 +2452,6 @@ Boolean *includeAssessment = true; // Whether to include assessment (optional) (
 // Create an instance of the API class
 var api = new OrchestratorPlugin.DefaultApi()
 var instanceId = instanceId_example; // {String} ID of the workflow instance
-var opts = {
-  'includeAssessment': true // {Boolean} Whether to include assessment
-};
 
 var callback = function(error, data, response) {
   if (error) {
@@ -2478,7 +2460,7 @@ var callback = function(error, data, response) {
     console.log('API called successfully. Returned data: ' + data);
   }
 };
-api.getInstanceById(instanceId, opts, callback);
+api.getInstanceById(instanceId, callback);
 </code></pre>
                             </div>
 
@@ -2502,11 +2484,10 @@ namespace Example
             // Create an instance of the API class
             var apiInstance = new DefaultApi();
             var instanceId = instanceId_example;  // String | ID of the workflow instance (default to null)
-            var includeAssessment = true;  // Boolean | Whether to include assessment (optional)  (default to false)
 
             try {
                 // Get Workflow Instance by ID
-                AssessedProcessInstanceDTO result = apiInstance.getInstanceById(instanceId, includeAssessment);
+                ProcessInstanceDTO result = apiInstance.getInstanceById(instanceId);
                 Debug.WriteLine(result);
             } catch (Exception e) {
                 Debug.Print("Exception when calling DefaultApi.getInstanceById: " + e.Message );
@@ -2524,10 +2505,9 @@ require_once(__DIR__ . '/vendor/autoload.php');
 // Create an instance of the API class
 $api_instance = new OpenAPITools\Client\Api\DefaultApi();
 $instanceId = instanceId_example; // String | ID of the workflow instance
-$includeAssessment = true; // Boolean | Whether to include assessment
 
 try {
-    $result = $api_instance->getInstanceById($instanceId, $includeAssessment);
+    $result = $api_instance->getInstanceById($instanceId);
     print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling DefaultApi->getInstanceById: ', $e->getMessage(), PHP_EOL;
@@ -2543,10 +2523,9 @@ use WWW::OPenAPIClient::DefaultApi;
 # Create an instance of the API class
 my $api_instance = WWW::OPenAPIClient::DefaultApi->new();
 my $instanceId = instanceId_example; # String | ID of the workflow instance
-my $includeAssessment = true; # Boolean | Whether to include assessment
 
 eval {
-    my $result = $api_instance->getInstanceById(instanceId => $instanceId, includeAssessment => $includeAssessment);
+    my $result = $api_instance->getInstanceById(instanceId => $instanceId);
     print Dumper($result);
 };
 if ($@) {
@@ -2564,11 +2543,10 @@ from pprint import pprint
 # Create an instance of the API class
 api_instance = openapi_client.DefaultApi()
 instanceId = instanceId_example # String | ID of the workflow instance (default to null)
-includeAssessment = true # Boolean | Whether to include assessment (optional) (default to false)
 
 try:
     # Get Workflow Instance by ID
-    api_response = api_instance.get_instance_by_id(instanceId, includeAssessment=includeAssessment)
+    api_response = api_instance.get_instance_by_id(instanceId)
     pprint(api_response)
 except ApiException as e:
     print("Exception when calling DefaultApi->getInstanceById: %s\n" % e)</code></pre>
@@ -2579,10 +2557,9 @@ except ApiException as e:
 
 pub fn main() {
     let instanceId = instanceId_example; // String
-    let includeAssessment = true; // Boolean
 
     let mut context = DefaultApi::Context::default();
-    let result = client.getInstanceById(instanceId, includeAssessment, &context).wait();
+    let result = client.getInstanceById(instanceId, &context).wait();
 
     println!("{:?}", result);
 }
@@ -2631,33 +2608,6 @@ ID of the workflow instance
 
 
 
-                            <div class="methodsubtabletitle">Query parameters</div>
-                            <table id="methodsubtable">
-                              <tr>
-                                <th width="150px">Name</th>
-                                <th>Description</th>
-                              </tr>
-                                <tr><td style="width:150px;">includeAssessment</td>
-<td>
-
-
-    <div id="d2e199_getInstanceById_includeAssessment">
-        <div class="json-schema-view">
-            <div class="primitive">
-                <span class="type">
-                    Boolean
-                </span>
-
-                    <div class="inner description marked">
-Whether to include assessment
-                    </div>
-            </div>
-        </div>
-    </div>
-</td>
-</tr>
-
-                            </table>
 
                           <h2>Responses</h2>
                             <h3 id="examples-Default-getInstanceById-title-200"></h3>
@@ -5825,6 +5775,420 @@ $(document).ready(function() {
                                     </script>
                                   </div>
                                   <input id='responses-Default-getWorkflowsOverview-500-schema-data' type='hidden' value=''></input>
+                                </div>
+                            </div>
+                        </article>
+                      </div>
+                      <hr>
+                    <div id="api-Default-pingWorkflowServiceById">
+                      <article id="api-Default-pingWorkflowServiceById-0" data-group="User" data-name="pingWorkflowServiceById" data-version="0">
+                        <div class="pull-left">
+                          <h1>pingWorkflowServiceById</h1>
+                          <p></p>
+                        </div>
+                        <div class="pull-right"></div>
+                        <div class="clearfix"></div>
+                        <p></p>
+                        <p class="marked">Returns true if the workflow service is up for the given workflow ID.</p>
+                        <p></p>
+                        <br />
+                        <pre class="prettyprint language-html prettyprinted" data-type="get"><code><span class="pln">/v2/workflows/{workflowId}/pingWorkflowService</span></code></pre>
+                        <p>
+                          <h3>Usage and SDK Samples</h3>
+                        </p>
+                        <ul class="nav nav-tabs nav-tabs-examples">
+                          <li class="active"><a href="#examples-Default-pingWorkflowServiceById-0-curl">Curl</a></li>
+                          <li class=""><a href="#examples-Default-pingWorkflowServiceById-0-java">Java</a></li>
+                          <li class=""><a href="#examples-Default-pingWorkflowServiceById-0-dart">Dart</a></li>
+                          <li class=""><a href="#examples-Default-pingWorkflowServiceById-0-android">Android</a></li>
+                          <!--<li class=""><a href="#examples-Default-pingWorkflowServiceById-0-groovy">Groovy</a></li>-->
+                          <li class=""><a href="#examples-Default-pingWorkflowServiceById-0-objc">Obj-C</a></li>
+                          <li class=""><a href="#examples-Default-pingWorkflowServiceById-0-javascript">JavaScript</a></li>
+                          <!--<li class=""><a href="#examples-Default-pingWorkflowServiceById-0-angular">Angular</a></li>-->
+                          <li class=""><a href="#examples-Default-pingWorkflowServiceById-0-csharp">C#</a></li>
+                          <li class=""><a href="#examples-Default-pingWorkflowServiceById-0-php">PHP</a></li>
+                          <li class=""><a href="#examples-Default-pingWorkflowServiceById-0-perl">Perl</a></li>
+                          <li class=""><a href="#examples-Default-pingWorkflowServiceById-0-python">Python</a></li>
+                          <li class=""><a href="#examples-Default-pingWorkflowServiceById-0-rust">Rust</a></li>
+                        </ul>
+
+                        <div class="tab-content">
+                          <div class="tab-pane active" id="examples-Default-pingWorkflowServiceById-0-curl">
+                            <pre class="prettyprint"><code class="language-bsh">curl -X GET \
+ -H "Accept: application/json" \
+ "http://localhost/v2/workflows/{workflowId}/pingWorkflowService"
+</code></pre>
+                          </div>
+                          <div class="tab-pane" id="examples-Default-pingWorkflowServiceById-0-java">
+                            <pre class="prettyprint"><code class="language-java">import org.openapitools.client.*;
+import org.openapitools.client.auth.*;
+import org.openapitools.client.model.*;
+import org.openapitools.client.api.DefaultApi;
+
+import java.io.File;
+import java.util.*;
+
+public class DefaultApiExample {
+    public static void main(String[] args) {
+
+        // Create an instance of the API class
+        DefaultApi apiInstance = new DefaultApi();
+        String workflowId = workflowId_example; // String | ID of the workflow to fetch
+
+        try {
+            'Boolean' result = apiInstance.pingWorkflowServiceById(workflowId);
+            System.out.println(result);
+        } catch (ApiException e) {
+            System.err.println("Exception when calling DefaultApi#pingWorkflowServiceById");
+            e.printStackTrace();
+        }
+    }
+}
+</code></pre>
+                          </div>
+
+                          <div class="tab-pane" id="examples-Default-pingWorkflowServiceById-0-dart">
+                            <pre class="prettyprint"><code class="language-dart">import 'package:openapi/api.dart';
+
+final api_instance = DefaultApi();
+
+final String workflowId = new String(); // String | ID of the workflow to fetch
+
+try {
+    final result = await api_instance.pingWorkflowServiceById(workflowId);
+    print(result);
+} catch (e) {
+    print('Exception when calling DefaultApi->pingWorkflowServiceById: $e\n');
+}
+
+</code></pre>
+                          </div>
+
+                          <div class="tab-pane" id="examples-Default-pingWorkflowServiceById-0-android">
+                            <pre class="prettyprint"><code class="language-java">import org.openapitools.client.api.DefaultApi;
+
+public class DefaultApiExample {
+    public static void main(String[] args) {
+        DefaultApi apiInstance = new DefaultApi();
+        String workflowId = workflowId_example; // String | ID of the workflow to fetch
+
+        try {
+            'Boolean' result = apiInstance.pingWorkflowServiceById(workflowId);
+            System.out.println(result);
+        } catch (ApiException e) {
+            System.err.println("Exception when calling DefaultApi#pingWorkflowServiceById");
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+                          </div>
+  <!--
+  <div class="tab-pane" id="examples-Default-pingWorkflowServiceById-0-groovy">
+  <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
+  </div> -->
+                            <div class="tab-pane" id="examples-Default-pingWorkflowServiceById-0-objc">
+                              <pre class="prettyprint"><code class="language-cpp">
+
+// Create an instance of the API class
+DefaultApi *apiInstance = [[DefaultApi alloc] init];
+String *workflowId = workflowId_example; // ID of the workflow to fetch (default to null)
+
+[apiInstance pingWorkflowServiceByIdWith:workflowId
+              completionHandler: ^('Boolean' output, NSError* error) {
+    if (output) {
+        NSLog(@"%@", output);
+    }
+    if (error) {
+        NSLog(@"Error: %@", error);
+    }
+}];
+</code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Default-pingWorkflowServiceById-0-javascript">
+                              <pre class="prettyprint"><code class="language-js">var OrchestratorPlugin = require('orchestrator_plugin');
+
+// Create an instance of the API class
+var api = new OrchestratorPlugin.DefaultApi()
+var workflowId = workflowId_example; // {String} ID of the workflow to fetch
+
+var callback = function(error, data, response) {
+  if (error) {
+    console.error(error);
+  } else {
+    console.log('API called successfully. Returned data: ' + data);
+  }
+};
+api.pingWorkflowServiceById(workflowId, callback);
+</code></pre>
+                            </div>
+
+                            <!--<div class="tab-pane" id="examples-Default-pingWorkflowServiceById-0-angular">
+              <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
+            </div>-->
+                            <div class="tab-pane" id="examples-Default-pingWorkflowServiceById-0-csharp">
+                              <pre class="prettyprint"><code class="language-cs">using System;
+using System.Diagnostics;
+using Org.OpenAPITools.Api;
+using Org.OpenAPITools.Client;
+using Org.OpenAPITools.Model;
+
+namespace Example
+{
+    public class pingWorkflowServiceByIdExample
+    {
+        public void main()
+        {
+
+            // Create an instance of the API class
+            var apiInstance = new DefaultApi();
+            var workflowId = workflowId_example;  // String | ID of the workflow to fetch (default to null)
+
+            try {
+                'Boolean' result = apiInstance.pingWorkflowServiceById(workflowId);
+                Debug.WriteLine(result);
+            } catch (Exception e) {
+                Debug.Print("Exception when calling DefaultApi.pingWorkflowServiceById: " + e.Message );
+            }
+        }
+    }
+}
+</code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Default-pingWorkflowServiceById-0-php">
+                              <pre class="prettyprint"><code class="language-php"><&#63;php
+require_once(__DIR__ . '/vendor/autoload.php');
+
+// Create an instance of the API class
+$api_instance = new OpenAPITools\Client\Api\DefaultApi();
+$workflowId = workflowId_example; // String | ID of the workflow to fetch
+
+try {
+    $result = $api_instance->pingWorkflowServiceById($workflowId);
+    print_r($result);
+} catch (Exception $e) {
+    echo 'Exception when calling DefaultApi->pingWorkflowServiceById: ', $e->getMessage(), PHP_EOL;
+}
+?></code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Default-pingWorkflowServiceById-0-perl">
+                              <pre class="prettyprint"><code class="language-perl">use Data::Dumper;
+use WWW::OPenAPIClient::Configuration;
+use WWW::OPenAPIClient::DefaultApi;
+
+# Create an instance of the API class
+my $api_instance = WWW::OPenAPIClient::DefaultApi->new();
+my $workflowId = workflowId_example; # String | ID of the workflow to fetch
+
+eval {
+    my $result = $api_instance->pingWorkflowServiceById(workflowId => $workflowId);
+    print Dumper($result);
+};
+if ($@) {
+    warn "Exception when calling DefaultApi->pingWorkflowServiceById: $@\n";
+}</code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Default-pingWorkflowServiceById-0-python">
+                              <pre class="prettyprint"><code class="language-python">from __future__ import print_statement
+import time
+import openapi_client
+from openapi_client.rest import ApiException
+from pprint import pprint
+
+# Create an instance of the API class
+api_instance = openapi_client.DefaultApi()
+workflowId = workflowId_example # String | ID of the workflow to fetch (default to null)
+
+try:
+    api_response = api_instance.ping_workflow_service_by_id(workflowId)
+    pprint(api_response)
+except ApiException as e:
+    print("Exception when calling DefaultApi->pingWorkflowServiceById: %s\n" % e)</code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Default-pingWorkflowServiceById-0-rust">
+                              <pre class="prettyprint"><code class="language-rust">extern crate DefaultApi;
+
+pub fn main() {
+    let workflowId = workflowId_example; // String
+
+    let mut context = DefaultApi::Context::default();
+    let result = client.pingWorkflowServiceById(workflowId, &context).wait();
+
+    println!("{:?}", result);
+}
+</code></pre>
+                            </div>
+                          </div>
+
+                          <h2>Scopes</h2>
+                          <table>
+                            
+                          </table>
+
+                          <h2>Parameters</h2>
+
+                            <div class="methodsubtabletitle">Path parameters</div>
+                            <table id="methodsubtable">
+                                <tr>
+                                  <th width="150px">Name</th>
+                                  <th>Description</th>
+                                </tr>
+                                  <tr><td style="width:150px;">workflowId*</td>
+<td>
+
+
+    <div id="d2e199_pingWorkflowServiceById_workflowId">
+        <div class="json-schema-view">
+            <div class="primitive">
+                <span class="type">
+                    String
+                </span>
+
+                    <div class="inner description marked">
+ID of the workflow to fetch
+                    </div>
+            </div>
+                <div class="inner required">
+                    Required
+                </div>
+        </div>
+    </div>
+</td>
+</tr>
+
+                            </table>
+
+
+
+
+
+                          <h2>Responses</h2>
+                            <h3 id="examples-Default-pingWorkflowServiceById-title-200"></h3>
+                            <p id="examples-Default-pingWorkflowServiceById-description-200" class="marked"></p>
+                            <script>
+                              var responseDefault200_description = `Success`;
+                              var responseDefault200_description_break = responseDefault200_description.indexOf('\n');
+                              if (responseDefault200_description_break == -1) {
+                                $("#examples-Default-pingWorkflowServiceById-title-200").text("Status: 200 - " + responseDefault200_description);
+                              } else {
+                                $("#examples-Default-pingWorkflowServiceById-title-200").text("Status: 200 - " + responseDefault200_description.substring(0, responseDefault200_description_break));
+                                $("#examples-Default-pingWorkflowServiceById-description-200").html(responseDefault200_description.substring(responseDefault200_description_break));
+                              }
+                            </script>
+
+
+                            <ul id="responses-detail-Default-pingWorkflowServiceById-200" class="nav nav-tabs nav-tabs-examples" >
+                                <li class="active">
+                                  <a data-toggle="tab" href="#responses-Default-pingWorkflowServiceById-200-schema">Schema</a>
+                                </li>
+
+
+
+
+                            </ul>
+
+
+                            <div class="tab-content" id="responses-Default-pingWorkflowServiceById-200-wrapper" style='margin-bottom: 10px;'>
+                                <div class="tab-pane active" id="responses-Default-pingWorkflowServiceById-200-schema">
+                                  <div id="responses-Default-pingWorkflowServiceById-schema-200" class="exampleStyle">
+                                    <script>
+                                      $(document).ready(function() {
+                                        var schemaWrapper = ;
+                                        var schema = findNode('schema',schemaWrapper).schema;
+                                        if (!schema) {
+                                          schema = schemaWrapper.schema;
+                                        }
+                                        if (schema.$ref != null) {
+                                          schema = defsParser.$refs.get(schema.$ref);
+                                          Object.keys(schema.properties).forEach( (item) => {
+                                            if (schema.properties[item].$ref != null) {
+                                              schema.properties[item] = defsParser.$refs.get(schema.properties[item].$ref);
+                                            }
+                                          });
+                                        } else if (schema.items != null && schema.items.$ref != null) {
+                                            schema.items = defsParser.$refs.get(schema.items.$ref);
+                                        } else {
+                                          schemaWrapper.definitions = Object.assign({}, defs);
+                                          $RefParser.dereference(schemaWrapper).catch(function(err) {
+                                            console.log(err);
+                                          });
+                                        }
+
+                                        var view = new JSONSchemaView(schema, 3);
+                                        $('#responses-Default-pingWorkflowServiceById-200-schema-data').val(JSON.stringify(schema));
+                                        var result = $('#responses-Default-pingWorkflowServiceById-schema-200');
+                                        result.empty();
+                                        result.append(view.render());
+                                      });
+                                    </script>
+                                  </div>
+                                  <input id='responses-Default-pingWorkflowServiceById-200-schema-data' type='hidden' value=''></input>
+                                </div>
+                            </div>
+                            <h3 id="examples-Default-pingWorkflowServiceById-title-500"></h3>
+                            <p id="examples-Default-pingWorkflowServiceById-description-500" class="marked"></p>
+                            <script>
+                              var responseDefault500_description = `Error pinging workflow service by id`;
+                              var responseDefault500_description_break = responseDefault500_description.indexOf('\n');
+                              if (responseDefault500_description_break == -1) {
+                                $("#examples-Default-pingWorkflowServiceById-title-500").text("Status: 500 - " + responseDefault500_description);
+                              } else {
+                                $("#examples-Default-pingWorkflowServiceById-title-500").text("Status: 500 - " + responseDefault500_description.substring(0, responseDefault500_description_break));
+                                $("#examples-Default-pingWorkflowServiceById-description-500").html(responseDefault500_description.substring(responseDefault500_description_break));
+                              }
+                            </script>
+
+
+                            <ul id="responses-detail-Default-pingWorkflowServiceById-500" class="nav nav-tabs nav-tabs-examples" >
+                                <li class="active">
+                                  <a data-toggle="tab" href="#responses-Default-pingWorkflowServiceById-500-schema">Schema</a>
+                                </li>
+
+
+
+
+                            </ul>
+
+
+                            <div class="tab-content" id="responses-Default-pingWorkflowServiceById-500-wrapper" style='margin-bottom: 10px;'>
+                                <div class="tab-pane active" id="responses-Default-pingWorkflowServiceById-500-schema">
+                                  <div id="responses-Default-pingWorkflowServiceById-schema-500" class="exampleStyle">
+                                    <script>
+                                      $(document).ready(function() {
+                                        var schemaWrapper = ;
+                                        var schema = findNode('schema',schemaWrapper).schema;
+                                        if (!schema) {
+                                          schema = schemaWrapper.schema;
+                                        }
+                                        if (schema.$ref != null) {
+                                          schema = defsParser.$refs.get(schema.$ref);
+                                          Object.keys(schema.properties).forEach( (item) => {
+                                            if (schema.properties[item].$ref != null) {
+                                              schema.properties[item] = defsParser.$refs.get(schema.properties[item].$ref);
+                                            }
+                                          });
+                                        } else if (schema.items != null && schema.items.$ref != null) {
+                                            schema.items = defsParser.$refs.get(schema.items.$ref);
+                                        } else {
+                                          schemaWrapper.definitions = Object.assign({}, defs);
+                                          $RefParser.dereference(schemaWrapper).catch(function(err) {
+                                            console.log(err);
+                                          });
+                                        }
+
+                                        var view = new JSONSchemaView(schema, 3);
+                                        $('#responses-Default-pingWorkflowServiceById-500-schema-data').val(JSON.stringify(schema));
+                                        var result = $('#responses-Default-pingWorkflowServiceById-schema-500');
+                                        result.empty();
+                                        result.append(view.render());
+                                      });
+                                    </script>
+                                  </div>
+                                  <input id='responses-Default-pingWorkflowServiceById-500-schema-data' type='hidden' value=''></input>
                                 </div>
                             </div>
                         </article>

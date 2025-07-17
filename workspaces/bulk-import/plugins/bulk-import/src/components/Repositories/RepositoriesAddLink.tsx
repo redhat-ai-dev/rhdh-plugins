@@ -14,28 +14,18 @@
  * limitations under the License.
  */
 
-import React from 'react';
-
 import { LinkButton } from '@backstage/core-components';
 
 import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
-import { makeStyles } from '@mui/styles';
+import Typography from '@mui/material/Typography';
 import { useFormikContext } from 'formik';
 
 import { AddRepositoriesFormValues } from '../../types';
-
-const useStyles = makeStyles(() => ({
-  addLink: {
-    display: 'flex',
-    justifyContent: 'end',
-    marginBottom: '24px',
-  },
-}));
+import { gitlabFeatureFlag } from '../../utils/repository-utils';
 
 export const RepositoriesAddLink = () => {
   const { status, setStatus } = useFormikContext<AddRepositoriesFormValues>();
-  const classes = useStyles();
 
   const handleCloseAlert = () => {
     setStatus(null);
@@ -53,16 +43,22 @@ export const RepositoriesAddLink = () => {
           <br />
         </>
       )}
-      <span className={classes.addLink}>
+      <Typography
+        sx={{
+          display: 'flex',
+          justifyContent: 'end',
+          marginBottom: '24px !important',
+        }}
+      >
         <LinkButton
           to="add"
           color="primary"
           variant="contained"
           data-testid="add-repository"
         >
-          Add
+          {gitlabFeatureFlag ? 'Import' : 'Add'}
         </LinkButton>
-      </span>
+      </Typography>
     </>
   );
 };

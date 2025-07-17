@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-
 import { Entity } from '@backstage/catalog-model';
 import { StatusOK } from '@backstage/core-components';
 
+import Typography from '@mui/material/Typography';
 import * as jsyaml from 'js-yaml';
 import { get } from 'lodash';
 import * as yaml from 'yaml';
@@ -44,6 +43,8 @@ import {
   RepositorySelection,
   RepositoryStatus,
 } from '../types';
+
+export const gitlabFeatureFlag = false;
 
 export const descendingComparator = (
   a: AddRepositoryData,
@@ -223,25 +224,33 @@ export const getImportStatus = (
   status: string,
   showIcon?: boolean,
   prUrl?: string,
+  isApprovalToolGitlab: boolean = false,
 ) => {
   if (!status) {
     return '';
   }
+  const labelText = gitlabFeatureFlag ? 'Already imported' : 'Added';
   switch (status) {
     case 'WAIT_PR_APPROVAL':
       return showIcon ? (
-        <WaitingForPR url={prUrl as string} />
+        <WaitingForPR
+          url={prUrl as string}
+          isApprovalToolGitlab={isApprovalToolGitlab}
+        />
       ) : (
         'Waiting for Approval'
       );
     case 'ADDED':
       return showIcon ? (
-        <span style={{ display: 'flex', alignItems: 'baseline' }}>
+        <Typography
+          component="span"
+          style={{ display: 'flex', alignItems: 'baseline' }}
+        >
           <StatusOK />
-          Added
-        </span>
+          {gitlabFeatureFlag ? 'Imported' : 'Added'}
+        </Typography>
       ) : (
-        'Added'
+        labelText
       );
     default:
       return '';
@@ -422,7 +431,7 @@ export const getApi = (
 };
 
 export const getCustomisedErrorMessage = (
-  status: RepositoryStatus[] | undefined,
+  status: (RepositoryStatus | string)[] | undefined,
 ) => {
   let message = '';
   let showRepositoryLink = false;

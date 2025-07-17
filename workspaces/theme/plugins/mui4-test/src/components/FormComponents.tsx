@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-import React from 'react';
 import { InfoCard } from '@backstage/core-components';
 import Button, { ButtonProps } from '@material-ui/core/Button';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Checkbox, { CheckboxProps } from '@material-ui/core/Checkbox';
+import Switch, { SwitchProps } from '@material-ui/core/Switch';
 
 const Buttons = () => {
   const colors: ButtonProps['color'][] = [undefined, 'primary', 'secondary'];
@@ -95,6 +95,57 @@ const Checkboxes = () => {
   );
 };
 
+const Switches = () => {
+  const colors: SwitchProps['color'][] = [
+    undefined,
+    'primary',
+    'secondary',
+    'default',
+  ];
+  return (
+    <table>
+      <tr>
+        <th>color</th>
+        <th>enabled on</th>
+        <th>enabled off</th>
+        <th>disabled on</th>
+        <th>disabled off</th>
+      </tr>
+      {colors.map(color => (
+        <tr key={color}>
+          <td>{color ?? 'no color'}</td>
+          <td>
+            <FormControlLabel
+              control={<Switch checked color={color} />}
+              label="a switch"
+            />
+          </td>
+          <td>
+            <FormControlLabel
+              control={<Switch color={color} />}
+              label="a switch"
+            />
+          </td>
+          <td>
+            <FormControlLabel
+              control={<Switch color={color} />}
+              label="a switch"
+              disabled
+            />
+          </td>
+          <td>
+            <FormControlLabel
+              control={<Switch checked color={color} />}
+              label="a switch"
+              disabled
+            />
+          </td>
+        </tr>
+      ))}
+    </table>
+  );
+};
+
 export const FormComponents = () => {
   return (
     <div>
@@ -107,6 +158,8 @@ export const FormComponents = () => {
       <Buttons />
       <br />
       <Checkboxes />
+      <br />
+      <Switches />
     </div>
   );
 };

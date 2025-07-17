@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
+import type { ChangeEvent, FocusEvent } from 'react';
+import { useEffect } from 'react';
 import { useAsync } from 'react-use';
 
 import { Entity, EntityMeta } from '@backstage/catalog-model';
@@ -41,6 +42,7 @@ import { FormikErrors, useFormik, useFormikContext } from 'formik';
 
 import {
   AddRepositoriesFormValues,
+  ApprovalTool,
   PullRequestPreview,
   PullRequestPreviewData,
 } from '../../types';
@@ -80,8 +82,11 @@ export const PreviewPullRequestForm = ({
   const { values } = useFormikContext<AddRepositoriesFormValues>();
   const catalogApi = useApi(catalogApiRef);
 
-  const approvalTool =
-    values.approvalTool === 'git' ? 'Pull request' : 'ServiceNow ticket';
+  const approvalToolLabel = {
+    [ApprovalTool.Gitlab]: 'Merge request',
+    [ApprovalTool.Git]: 'Pull request',
+    [ApprovalTool.ServiceNow]: 'ServiceNow ticket',
+  };
 
   const formik = useFormik<PullRequestPreview>({
     enableReinitialize: true,
@@ -89,7 +94,9 @@ export const PreviewPullRequestForm = ({
     initialErrors: formErrors?.[
       repoId
     ] as any as FormikErrors<PullRequestPreview>,
-    validationSchema: getValidationSchema(approvalTool),
+    validationSchema: getValidationSchema(
+      approvalToolLabel[values.approvalTool],
+    ),
     onSubmit: () => {},
   });
 
@@ -181,7 +188,7 @@ export const PreviewPullRequestForm = ({
   };
 
   const handleChange = (
-    event: React.FocusEvent<HTMLTextAreaElement | HTMLInputElement>,
+    event: FocusEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
     const targetName = event.target.name;
 
@@ -246,7 +253,7 @@ export const PreviewPullRequestForm = ({
     },
   ];
 
-  React.useEffect(() => {
+  useEffect(() => {
     const err = {
       ...formErrors,
       [repoId]: formik.errors as any as PullRequestPreview,
@@ -264,11 +271,10 @@ export const PreviewPullRequestForm = ({
   return (
     <>
       <Box marginTop={2}>
-        <Typography variant="h6">{`${approvalTool} details`}</Typography>
+        <Typography variant="h6">{`${approvalToolLabel[values.approvalTool]} details`}</Typography>
       </Box>
-
       <TextField
-        label={`${approvalTool} title`}
+        label={`${approvalToolLabel[values.approvalTool]} title`}
         placeholder="Add Backstage catalog entity descriptor files"
         variant="outlined"
         margin="normal"
@@ -280,9 +286,8 @@ export const PreviewPullRequestForm = ({
         helperText={formik.errors?.prTitle}
         required
       />
-
       <TextField
-        label={`${approvalTool} body`}
+        label={`${approvalToolLabel[values.approvalTool]} body`}
         placeholder="A describing text with Markdown support"
         margin="normal"
         variant="outlined"
@@ -295,11 +300,9 @@ export const PreviewPullRequestForm = ({
         multiline
         required
       />
-
       <Box marginTop={2}>
         <Typography variant="h6">Entity configuration</Typography>
       </Box>
-
       <TextField
         label="Name of the created component"
         placeholder="Component Name"
@@ -315,7 +318,6 @@ export const PreviewPullRequestForm = ({
       />
       <br />
       <br />
-
       {!formik.values?.useCodeOwnersFile && (
         <Autocomplete
           options={entities || []}
@@ -360,13 +362,12 @@ export const PreviewPullRequestForm = ({
           )}
         />
       )}
-
       <FormControlLabel
         control={
           <Checkbox
             name="useCodeOwnersFile"
             checked={formik.values?.useCodeOwnersFile}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
               handleChange({
                 target: {
                   name: 'useCodeOwnersFile',
@@ -402,10 +403,10 @@ export const PreviewPullRequestForm = ({
       })}
       <Box marginTop={2}>
         <Typography variant="h6">
-          Preview {`${approvalTool.toLocaleLowerCase('en-US')}`}
+          Preview
+          {` ${approvalToolLabel[values.approvalTool].toLocaleLowerCase('en-US')}`}
         </Typography>
       </Box>
-
       <PreviewPullRequestComponent
         title={formik.values?.prTitle ?? ''}
         description={formik.values?.prDescription ?? ''}
@@ -414,11 +415,9 @@ export const PreviewPullRequestForm = ({
           cardContent: contentClasses.previewCardContent,
         }}
       />
-
       <Box marginTop={2} marginBottom={1}>
         <Typography variant="h6">Preview entities</Typography>
       </Box>
-
       <PreviewCatalogInfoComponent
         entities={[formik.values?.yaml]}
         repositoryUrl={repoUrl}

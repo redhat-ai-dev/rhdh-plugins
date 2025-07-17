@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Backstage Authors
+ * Copyright Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,24 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { makeStyles } from '@material-ui/core';
+
+import { makeStyles } from 'tss-react/mui';
 
 import { ProcessInstanceStatusDTO } from '@red-hat-developer-hub/backstage-plugin-orchestrator-common';
 
-const useStyles = makeStyles(
+const useStyles = makeStyles()(
   theme =>
     ({
       [ProcessInstanceStatusDTO.Active]: {
-        color: theme.palette.primary.main,
+        color: theme.palette.grey[500],
       },
       [ProcessInstanceStatusDTO.Completed]: {
         color: theme.palette.success.main,
       },
       [ProcessInstanceStatusDTO.Suspended]: {
-        color: theme.palette.warning.main,
+        color: theme.palette.grey[500],
       },
       [ProcessInstanceStatusDTO.Aborted]: {
-        color: theme.palette.error.main,
+        color: theme.palette.grey[500],
       },
       [ProcessInstanceStatusDTO.Error]: {
         color: theme.palette.error.main,
@@ -44,6 +45,6 @@ const useStyles = makeStyles(
 export const useWorkflowInstanceStateColors = (
   value?: ProcessInstanceStatusDTO,
 ) => {
-  const styles = useStyles();
-  return value ? styles[value] : undefined;
+  const { classes } = useStyles();
+  return value ? classes[value] : undefined;
 };

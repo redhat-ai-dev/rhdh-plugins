@@ -1,5 +1,5 @@
 /*
- * Copyright Red Hat, Inc.
+ * Copyright The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-import { useApi } from '@backstage/core-plugin-api';
-
 import { useQuery } from '@tanstack/react-query';
-import { marketplaceApiRef } from '../api';
 
-export const usePlugins = () => {
-  const marketplaceApi = useApi(marketplaceApiRef);
+import { GetEntitiesRequest } from '@red-hat-developer-hub/backstage-plugin-marketplace-common';
+
+import { useMarketplaceApi } from './useMarketplaceApi';
+
+export const usePlugins = (request: GetEntitiesRequest) => {
+  const marketplaceApi = useMarketplaceApi();
   return useQuery({
-    queryKey: ['plugins'],
-    queryFn: () => marketplaceApi.getPlugins(),
+    queryKey: ['marketplaceApi', 'getPlugins', request],
+    queryFn: () => marketplaceApi.getPlugins(request),
   });
 };

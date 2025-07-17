@@ -1,5 +1,5 @@
 /*
- * Copyright Red Hat, Inc.
+ * Copyright The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,37 @@
 
 import { catalogProcessingExtensionPoint } from '@backstage/plugin-catalog-node/alpha';
 import { catalogModuleMarketplace } from './module';
-import { startTestBackend } from '@backstage/backend-test-utils';
+import { mockServices, startTestBackend } from '@backstage/backend-test-utils';
+import { dynamicPluginsFeatureLoader } from '@backstage/backend-dynamic-feature-service';
+import type { SchedulerServiceTaskScheduleDefinition } from '@backstage/backend-plugin-api';
 
 describe('catalogModuleMarketplace', () => {
   it('should register the extension point', async () => {
-    const extensionPoint = { addProcessor: jest.fn() };
-    await startTestBackend({
-      extensionPoints: [[catalogProcessingExtensionPoint, extensionPoint]],
-      features: [catalogModuleMarketplace],
+    const runner = jest.fn();
+    let usedSchedule: SchedulerServiceTaskScheduleDefinition | undefined;
+    const scheduler = mockServices.scheduler.mock({
+      createScheduledTaskRunner(schedule) {
+        usedSchedule = schedule;
+        return { run: runner };
+      },
     });
 
-    expect(extensionPoint.addProcessor).toHaveBeenCalledTimes(5);
+    const extensionPoint = {
+      addProcessor: jest.fn(),
+      addEntityProvider: jest.fn(),
+    };
+    await startTestBackend({
+      extensionPoints: [[catalogProcessingExtensionPoint, extensionPoint]],
+      features: [
+        catalogModuleMarketplace,
+        dynamicPluginsFeatureLoader(),
+        scheduler.factory,
+      ],
+    });
+
+    expect(extensionPoint.addProcessor).toHaveBeenCalledTimes(6);
+    expect(extensionPoint.addEntityProvider).toHaveBeenCalledTimes(2);
+    expect(usedSchedule?.frequency).toEqual({ minutes: 30 });
+    expect(usedSchedule?.timeout).toEqual({ minutes: 10 });
   });
 });

@@ -4,111 +4,313 @@
 
 ```ts
 
-import { AuthService } from '@backstage/backend-plugin-api';
+import type { AuthService } from '@backstage/backend-plugin-api';
 import { CatalogApi } from '@backstage/catalog-client';
-import { Entity } from '@backstage/catalog-model';
-import { EntityFilterQuery } from '@backstage/catalog-client';
-import { EntityFilterQuery as EntityFilterQuery_2 } from '@red-hat-developer-hub/backstage-plugin-marketplace-common';
+import type { ConfigApi } from '@backstage/core-plugin-api';
+import type { Entity } from '@backstage/catalog-model';
 import { GetEntityFacetsRequest } from '@backstage/catalog-client';
 import { GetEntityFacetsResponse } from '@backstage/catalog-client';
 import { JsonObject } from '@backstage/types';
-import { z } from 'zod';
+import { QueryEntitiesInitialRequest } from '@backstage/catalog-client';
+import { ResourcePermission } from '@backstage/plugin-permission-common';
 
 // @public (undocumented)
-export interface AppConfigExample extends JsonObject {
+export interface Asset extends JsonObject {
     // (undocumented)
-    content: string | JsonObject;
+    encodedData?: string;
     // (undocumented)
-    title: string;
+    filename: string;
+    // (undocumented)
+    originUri: string;
+    // (undocumented)
+    type: AssetType;
 }
 
 // @public (undocumented)
-export const decodeFacetParams: (searchParams: URLSearchParams) => string[];
+export enum AssetType {
+    // (undocumented)
+    icon = "icon",
+    // (undocumented)
+    image = "image"
+}
 
 // @public (undocumented)
-export const decodeFilterParams: (searchParams: URLSearchParams) => Record<string, string[]>;
-
-// @public (undocumented)
-export const decodeQueryParams: (queryString: string) => {
-    facets?: string[] | undefined;
-    filter?: Record<string, string[]> | undefined;
+export type ConfigurationResponse = {
+    configYaml: string;
 };
 
 // @public (undocumented)
-export const encodeFacetParams: (facets: string[]) => URLSearchParams;
+export const decodeGetEntitiesRequest: (searchParams: URLSearchParams) => GetEntitiesRequest;
 
 // @public (undocumented)
-export const encodeFilterParams: (filter: EntityFilterQuery_2) => URLSearchParams;
+export const decodeGetEntityFacetsRequest: (searchParams: URLSearchParams) => GetEntityFacetsRequest;
 
 // @public (undocumented)
-export const encodeQueryParams: (options?: {
-    filter?: EntityFilterQuery_2;
-    facets?: string[];
-}) => string;
+export type DiscoveryApi = {
+    getBaseUrl(pluginId: string): Promise<string>;
+};
 
 // @public (undocumented)
-export const EntityFacetSchema: z.ZodObject<{
-    filter: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>>;
-    facets: z.ZodArray<z.ZodString, "many">;
-}, "strip", z.ZodTypeAny, {
-    facets: string[];
-    filter?: Record<string, string | string[]> | undefined;
-}, {
-    facets: string[];
-    filter?: Record<string, string | string[]> | undefined;
-}>;
-
-export { EntityFilterQuery }
-
-// @public (undocumented)
-export const EntityFilterQuerySchema: z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-
-export { GetEntityFacetsRequest }
-
-export { GetEntityFacetsResponse }
-
-// @public (undocumented)
-export enum InstallStatus {
+export interface Documentation extends JsonObject {
     // (undocumented)
-    Installed = "Installed",
+    markdown: string;
     // (undocumented)
-    NotInstalled = "NotInstalled"
+    tabTitle?: string;
+    // (undocumented)
+    title?: string;
+    // (undocumented)
+    type: DocumentationType;
 }
 
 // @public (undocumented)
-export const MARKETPLACE_API_VERSION = "marketplace.backstage.io/v1alpha1";
+export enum DocumentationType {
+    // (undocumented)
+    about = "about",
+    // (undocumented)
+    configuration = "configuration",
+    // (undocumented)
+    installation = "installation",
+    // (undocumented)
+    usage = "usage"
+}
+
+// @public (undocumented)
+export const encodeGetEntitiesRequest: (request: GetEntitiesRequest) => URLSearchParams;
+
+// @public (undocumented)
+export const encodeGetEntityFacetsRequest: (request: GetEntityFacetsRequest) => URLSearchParams;
+
+// @public (undocumented)
+export const EXTENSIONS_API_VERSION = "extensions.backstage.io/v1alpha1";
+
+// @public (undocumented)
+export const extensionsPermissions: ResourcePermission<"extensions-plugin">[];
+
+// @public
+export const extensionsPluginDeletePermission: ResourcePermission<"extensions-plugin">;
+
+// @public
+export type ExtensionsPluginPermission = ResourcePermission<typeof RESOURCE_TYPE_EXTENSIONS_PLUGIN>;
+
+// @public
+export const extensionsPluginReadPermission: ResourcePermission<"extensions-plugin">;
+
+// @public
+export const extensionsPluginWritePermission: ResourcePermission<"extensions-plugin">;
+
+// @public (undocumented)
+export type FetchApi = {
+    fetch: typeof fetch;
+};
+
+// @public (undocumented)
+export type GetEntitiesRequest = QueryEntitiesInitialRequest;
+
+// @public (undocumented)
+export interface GetEntitiesResponse<T> {
+    // (undocumented)
+    items: T[];
+    // (undocumented)
+    pageInfo: {
+        nextCursor?: string;
+        prevCursor?: string;
+    };
+    // (undocumented)
+    totalItems: number;
+}
+
+// @public (undocumented)
+export type IdentityApi = {
+    getCredentials(): Promise<{
+        token?: string;
+    }>;
+};
+
+// @public (undocumented)
+export function isMarketplaceCollection(entity?: Entity): entity is MarketplaceCollection;
+
+// @public (undocumented)
+export function isMarketplacePackage(entity?: Entity): entity is MarketplacePackage;
+
+// @public (undocumented)
+export function isMarketplacePlugin(entity?: Entity): entity is MarketplacePlugin;
+
+// @public (undocumented)
+export enum MarketplaceAnnotation {
+    // (undocumented)
+    CERTIFIED_BY = "extensions.backstage.io/certified-by",
+    // (undocumented)
+    PRE_INSTALLED = "extensions.backstage.io/pre-installed",
+    // (undocumented)
+    SUPPORT_TYPE = "extensions.backstage.io/support-type",
+    // (undocumented)
+    VERIFIED_BY = "extensions.backstage.io/verified-by"
+}
 
 // @public (undocumented)
 export interface MarketplaceApi {
     // (undocumented)
-    getEntityFacets(request: GetEntityFacetsRequest): Promise<GetEntityFacetsResponse>;
+    disablePackage?(namespace: string, name: string, disabled: boolean): Promise<{
+        status: string;
+    }>;
     // (undocumented)
-    getPluginByName(name: string): Promise<MarketplacePlugin>;
+    disablePlugin?(namespace: string, name: string, disabled: boolean): Promise<{
+        status: string;
+    }>;
     // (undocumented)
-    getPluginListByName(name: string): Promise<MarketplacePluginList>;
+    getCollectionByName(namespace: string, name: string): Promise<MarketplaceCollection>;
     // (undocumented)
-    getPluginLists(): Promise<MarketplacePluginList[]>;
+    getCollectionPlugins(namespace: string, name: string): Promise<MarketplacePlugin[]>;
     // (undocumented)
-    getPlugins(): Promise<MarketplacePlugin[]>;
+    getCollections(request: GetEntitiesRequest): Promise<GetEntitiesResponse<MarketplaceCollection>>;
     // (undocumented)
-    getPluginsByPluginListName(name: string): Promise<MarketplacePlugin[]>;
+    getCollectionsFacets(request: GetEntityFacetsRequest): Promise<GetEntityFacetsResponse>;
+    // (undocumented)
+    getExtensionsConfiguration?(): Promise<{
+        enabled: boolean;
+    }>;
+    // (undocumented)
+    getNodeEnvironment?(): Promise<{
+        nodeEnv: NodeEnvironmentType;
+    }>;
+    // (undocumented)
+    getPackageByName(namespace: string, name: string): Promise<MarketplacePackage>;
+    // (undocumented)
+    getPackageConfigByName?(namespace: string, name: string): Promise<ConfigurationResponse>;
+    // (undocumented)
+    getPackagePlugins(namespace: string, name: string): Promise<MarketplacePlugin[]>;
+    // (undocumented)
+    getPackages(request: GetEntitiesRequest): Promise<GetEntitiesResponse<MarketplacePackage>>;
+    // (undocumented)
+    getPackagesFacets(request: GetEntityFacetsRequest): Promise<GetEntityFacetsResponse>;
+    // (undocumented)
+    getPluginByName(namespace: string, name: string): Promise<MarketplacePlugin>;
+    // (undocumented)
+    getPluginConfigAuthorization?(namespace: string, name: string): Promise<{
+        read: 'ALLOW' | 'DENY';
+        write: 'ALLOW' | 'DENY';
+    }>;
+    // (undocumented)
+    getPluginConfigByName?(namespace: string, name: string): Promise<ConfigurationResponse>;
+    // (undocumented)
+    getPluginFacets(request: GetEntityFacetsRequest): Promise<GetEntityFacetsResponse>;
+    // (undocumented)
+    getPluginPackages(namespace: string, name: string): Promise<MarketplacePackage[]>;
+    // (undocumented)
+    getPlugins(request: GetEntitiesRequest): Promise<GetEntitiesResponse<MarketplacePlugin>>;
+    // (undocumented)
+    installPackage?(namespace: string, name: string, configYaml: string): Promise<{
+        status: string;
+    }>;
+    // (undocumented)
+    installPlugin?(namespace: string, name: string, configYaml: string): Promise<{
+        status: string;
+    }>;
 }
+
+// @public (undocumented)
+export type MarketplaceAuthor = {
+    name: string;
+    url?: string;
+};
+
+// @public (undocumented)
+export class MarketplaceBackendClient implements MarketplaceApi {
+    constructor(options: MarketplaceBackendClientOptions);
+    // (undocumented)
+    disablePackage(namespace: string, name: string, disabled: boolean): Promise<{
+        status: string;
+    }>;
+    // (undocumented)
+    disablePlugin(namespace: string, name: string, disabled: boolean): Promise<{
+        status: string;
+    }>;
+    // (undocumented)
+    getCollectionByName(namespace: string, name: string): Promise<MarketplaceCollection>;
+    // (undocumented)
+    getCollectionPlugins(namespace: string, name: string): Promise<MarketplacePlugin[]>;
+    // (undocumented)
+    getCollections(request: GetEntitiesRequest): Promise<GetEntitiesResponse<MarketplaceCollection>>;
+    // (undocumented)
+    getCollectionsFacets(request: GetEntityFacetsRequest): Promise<GetEntityFacetsResponse>;
+    // (undocumented)
+    getExtensionsConfiguration(): Promise<{
+        enabled: boolean;
+    }>;
+    // (undocumented)
+    getNodeEnvironment(): Promise<{
+        nodeEnv: NodeEnvironmentType;
+    }>;
+    // (undocumented)
+    getPackageByName(namespace: string, name: string): Promise<MarketplacePackage>;
+    // (undocumented)
+    getPackageConfigByName(namespace: string, name: string): Promise<ConfigurationResponse>;
+    // (undocumented)
+    getPackagePlugins(namespace: string, name: string): Promise<MarketplacePlugin[]>;
+    // (undocumented)
+    getPackages(request: GetEntitiesRequest): Promise<GetEntitiesResponse<MarketplacePackage>>;
+    // (undocumented)
+    getPackagesFacets(request: GetEntityFacetsRequest): Promise<GetEntityFacetsResponse>;
+    // (undocumented)
+    getPluginByName(namespace: string, name: string): Promise<MarketplacePlugin>;
+    // (undocumented)
+    getPluginConfigAuthorization(namespace: string, name: string): Promise<{
+        read: 'ALLOW' | 'DENY';
+        write: 'ALLOW' | 'DENY';
+    }>;
+    // (undocumented)
+    getPluginConfigByName(namespace: string, name: string): Promise<ConfigurationResponse>;
+    // (undocumented)
+    getPluginFacets(request: GetEntityFacetsRequest): Promise<GetEntityFacetsResponse>;
+    // (undocumented)
+    getPluginPackages(namespace: string, name: string): Promise<MarketplacePackage[]>;
+    // (undocumented)
+    getPlugins(request: GetEntitiesRequest): Promise<GetEntitiesResponse<MarketplacePlugin>>;
+    // (undocumented)
+    installPackage(namespace: string, name: string, configYaml: string): Promise<{
+        status: string;
+    }>;
+    // (undocumented)
+    installPlugin(namespace: string, name: string, configYaml: string): Promise<{
+        status: string;
+    }>;
+}
+
+// @public (undocumented)
+export type MarketplaceBackendClientOptions = {
+    discoveryApi: DiscoveryApi;
+    fetchApi: FetchApi;
+    identityApi: IdentityApi;
+    configApi: ConfigApi;
+};
 
 // @public (undocumented)
 export class MarketplaceCatalogClient implements MarketplaceApi {
     constructor(options: MarketplaceCatalogClientOptions);
     // (undocumented)
-    getEntityFacets(request: GetEntityFacetsRequest): Promise<GetEntityFacetsResponse>;
+    getCollectionByName(namespace: string, name: string): Promise<MarketplaceCollection>;
     // (undocumented)
-    getPluginByName(name: string): Promise<MarketplacePlugin>;
+    getCollectionPlugins(namespace: string, name: string): Promise<MarketplacePlugin[]>;
     // (undocumented)
-    getPluginListByName(name: string): Promise<MarketplacePluginList>;
+    getCollections(request: GetEntitiesRequest): Promise<GetEntitiesResponse<MarketplaceCollection>>;
     // (undocumented)
-    getPluginLists(): Promise<MarketplacePluginList[]>;
+    getCollectionsFacets(request: GetEntityFacetsRequest): Promise<GetEntityFacetsResponse>;
     // (undocumented)
-    getPlugins(): Promise<MarketplacePlugin[]>;
+    getPackageByName(namespace: string, name: string): Promise<MarketplacePackage>;
     // (undocumented)
-    getPluginsByPluginListName(name: string): Promise<MarketplacePlugin[]>;
+    getPackagePlugins(namespace: string, name: string): Promise<MarketplacePlugin[]>;
+    // (undocumented)
+    getPackages(request: GetEntitiesRequest): Promise<GetEntitiesResponse<MarketplacePackage>>;
+    // (undocumented)
+    getPackagesFacets(request: GetEntityFacetsRequest): Promise<GetEntityFacetsResponse>;
+    // (undocumented)
+    getPluginByName(namespace: string, name: string): Promise<MarketplacePlugin>;
+    // (undocumented)
+    getPluginFacets(request: GetEntityFacetsRequest): Promise<GetEntityFacetsResponse>;
+    // (undocumented)
+    getPluginPackages(namespace: string, name: string): Promise<MarketplacePackage[]>;
+    // (undocumented)
+    getPlugins(request: GetEntitiesRequest): Promise<GetEntitiesResponse<MarketplacePlugin>>;
 }
 
 // @public (undocumented)
@@ -118,13 +320,27 @@ export type MarketplaceCatalogClientOptions = {
 };
 
 // @public (undocumented)
-export enum MarketplaceKinds {
+export interface MarketplaceCollection extends Entity {
     // (undocumented)
-    package = "Package",
+    spec?: MarketplaceCollectionSpec;
+}
+
+// @public (undocumented)
+export interface MarketplaceCollectionSpec extends JsonObject {
     // (undocumented)
-    plugin = "Plugin",
+    plugins?: string[];
     // (undocumented)
-    pluginList = "PluginList"
+    type?: 'curated';
+}
+
+// @public (undocumented)
+export enum MarketplaceKind {
+    // (undocumented)
+    Collection = "PluginCollection",
+    // (undocumented)
+    Package = "Package",
+    // (undocumented)
+    Plugin = "Plugin"
 }
 
 // @public (undocumented)
@@ -136,27 +352,59 @@ export interface MarketplacePackage extends Entity {
 // @public (undocumented)
 export interface MarketplacePackageBackstage extends JsonObject {
     // (undocumented)
-    'supported-versions'?: string;
-    // (undocumented)
     role?: string;
+    // (undocumented)
+    supportedVersions?: string;
+}
+
+// @public (undocumented)
+export enum MarketplacePackageInstallStatus {
+    // (undocumented)
+    Disabled = "Disabled",
+    // (undocumented)
+    Installed = "Installed",
+    // (undocumented)
+    NotInstalled = "NotInstalled",
+    // (undocumented)
+    UpdateAvailable = "UpdateAvailable"
 }
 
 // @public (undocumented)
 export interface MarketplacePackageSpec extends JsonObject {
     // (undocumented)
-    appConfigExamples?: AppConfigExample[];
+    appConfigExamples?: MarketplacePackageSpecAppConfigExample[];
     // (undocumented)
     author?: string;
-    // (undocumented)
+    // @deprecated (undocumented)
     backstage?: MarketplacePackageBackstage;
     // (undocumented)
     dynamicArtifact?: string;
     // (undocumented)
+    installStatus?: MarketplacePackageInstallStatus;
+    // (undocumented)
     lifecycle?: string;
     // (undocumented)
-    packageName: string;
+    owner?: string;
+    // (undocumented)
+    packageName?: string;
+    // (undocumented)
+    partOf?: string[];
+    // (undocumented)
+    role?: string;
     // (undocumented)
     support?: string;
+    // (undocumented)
+    supportedVersions?: string;
+    // (undocumented)
+    version?: string;
+}
+
+// @public (undocumented)
+export interface MarketplacePackageSpecAppConfigExample extends JsonObject {
+    // (undocumented)
+    content: string | JsonObject;
+    // (undocumented)
+    title: string;
 }
 
 // @public (undocumented)
@@ -166,45 +414,51 @@ export interface MarketplacePlugin extends Entity {
 }
 
 // @public (undocumented)
-export interface MarketplacePluginList extends Entity {
+export enum MarketplacePluginInstallStatus {
     // (undocumented)
-    spec?: {
-        plugins: string[];
-    } & MarketplacePluginSpec;
+    Disabled = "Disabled",
+    // (undocumented)
+    Installed = "Installed",
+    // (undocumented)
+    NotInstalled = "NotInstalled",
+    // (undocumented)
+    PartiallyInstalled = "PartiallyInstalled",
+    // (undocumented)
+    UpdateAvailable = "UpdateAvailable"
 }
-
-// @public (undocumented)
-export type MarketplacePluginPackage = {
-    name: string;
-    version?: string;
-    backstage?: {
-        role?: string;
-        'supported-versions'?: string;
-    };
-    distribution?: string;
-};
 
 // @public (undocumented)
 export interface MarketplacePluginSpec extends JsonObject {
     // (undocumented)
+    assets?: Asset[];
+    // (undocumented)
+    author?: string;
+    // (undocumented)
+    authors?: MarketplaceAuthor[];
+    // (undocumented)
     categories?: string[];
     // (undocumented)
     description?: string;
-    // (undocumented)
+    // @deprecated (undocumented)
     developer?: string;
+    // (undocumented)
+    documentation?: Documentation[];
     // (undocumented)
     highlights?: string[];
     // (undocumented)
     icon?: string;
     // (undocumented)
-    installation?: {
-        markdown?: string;
-        appconfig?: string;
-    };
+    installation?: string;
     // (undocumented)
-    installStatus?: keyof typeof InstallStatus;
+    installStatus?: MarketplacePluginInstallStatus;
     // (undocumented)
-    packages?: (string | MarketplacePluginPackage)[];
+    packages?: string[];
 }
+
+// @public (undocumented)
+export type NodeEnvironmentType = 'production' | 'development' | 'test';
+
+// @public (undocumented)
+export const RESOURCE_TYPE_EXTENSIONS_PLUGIN = "extensions-plugin";
 
 ```

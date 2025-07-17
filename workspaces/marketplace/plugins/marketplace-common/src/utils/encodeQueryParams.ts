@@ -1,5 +1,5 @@
 /*
- * Copyright Red Hat, Inc.
+ * Copyright The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,59 +13,96 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { EntityFilterQuery } from '@red-hat-developer-hub/backstage-plugin-marketplace-common';
 
-/**
- * @public
- */
-export const encodeFilterParams = (filter: EntityFilterQuery) => {
+import {
+  EntityFilterQuery,
+  EntityOrderQuery,
+  GetEntityFacetsRequest,
+} from '@backstage/catalog-client';
+
+import { GetEntitiesRequest } from '../api';
+
+export const encodeEntityFilterQuery = (filter: EntityFilterQuery) => {
   const params = new URLSearchParams();
 
   Object.entries(filter).forEach(([key, value]) => {
     const values = Array.isArray(value) ? value : [value];
-
     values.forEach(v => {
-      params.append(
-        'filter',
-        `${encodeURIComponent(key)}=${encodeURIComponent(v)}`,
-      );
+      params.append('filter', `${key}=${v}`);
     });
   });
 
   return params;
 };
 
-/**
- * @public
- */
-export const encodeFacetParams = (facets: string[]) => {
+export const encodeEntityOrderQuery = (orderFields: EntityOrderQuery) => {
   const params = new URLSearchParams();
-  facets.forEach(f => params.append('facet', encodeURIComponent(f)));
+  if (Array.isArray(orderFields)) {
+    orderFields.forEach(({ field, order }) => {
+      params.append('orderFields', `${field},${order}`);
+    });
+  } else {
+    const { field, order } = orderFields;
+    params.append('orderFields', `${field},${order}`);
+  }
   return params;
 };
 
 /**
  * @public
  */
-export const encodeQueryParams = (options?: {
-  filter?: EntityFilterQuery;
-  facets?: string[];
-}) => {
+export const encodeGetEntitiesRequest = (
+  request: GetEntitiesRequest,
+): URLSearchParams => {
   const params = new URLSearchParams();
-
-  const { filter, facets } = options || {};
-
-  if (filter) {
-    encodeFilterParams(filter).forEach((value, key) =>
+  if (!request) {
+    return params;
+  }
+  if (request.fields) {
+    request.fields.forEach(field => params.append('field', field));
+  }
+  if (request.limit) {
+    params.append('limit', String(request.limit));
+  }
+  if (request.offset) {
+    params.append('offset', String(request.offset));
+  }
+  if (request.filter) {
+    encodeEntityFilterQuery(request.filter).forEach((value, key) =>
       params.append(key, value),
     );
   }
-
-  if (facets) {
-    encodeFacetParams(facets).forEach((value, key) =>
+  if (request.orderFields) {
+    encodeEntityOrderQuery(request.orderFields).forEach((value, key) =>
       params.append(key, value),
     );
   }
+  if (request.fullTextFilter?.term) {
+    params.append('fullTextTerm', request.fullTextFilter.term);
+    request.fullTextFilter.fields?.forEach(field =>
+      params.append('fullTextFields', field),
+    );
+  }
+  return params;
+};
 
-  return params.toString();
+/**
+ * @public
+ */
+export const encodeGetEntityFacetsRequest = (
+  request: GetEntityFacetsRequest,
+) => {
+  const params = new URLSearchParams();
+  if (!request) {
+    return params;
+  }
+  if (request.facets) {
+    request.facets.forEach(facet => params.append('facet', facet));
+  }
+  if (request.filter) {
+    encodeEntityFilterQuery(request.filter).forEach((value, key) =>
+      params.append(key, value),
+    );
+  }
+  return params;
 };

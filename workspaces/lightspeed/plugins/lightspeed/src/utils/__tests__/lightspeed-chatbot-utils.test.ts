@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
-import { ConversationList, ConversationSummary } from '../../types';
+import {
+  ConversationList,
+  ConversationSummary,
+  ReferencedDocuments,
+} from '../../types';
 import {
   createBotMessage,
   createMessage,
@@ -24,7 +28,23 @@ import {
   getTimestamp,
   getTimestampVariablesString,
   splitJsonStrings,
+  transformDocumentsToSources,
 } from '../lightspeed-chatbox-utils';
+
+const referenced_documents: ReferencedDocuments = [
+  {
+    doc_title: 'About Red Hat Developer Hub',
+    doc_description: 'Document description test',
+    doc_url:
+      'https://docs.redhat.com/en/documentation/red_hat_developer_hub/1.6/html-single/about_red_hat_developer_hub/index',
+  },
+  {
+    doc_description: undefined,
+    doc_title: 'Adoption Insights in Red Hat Developer Hub',
+    doc_url:
+      'https://docs.redhat.com/en/documentation/red_hat_developer_hub/1.6/html-single/adoption_insights_in_red_hat_developer_hub/index',
+  },
+];
 
 describe('getTimestampVariablesString', () => {
   it('should add a leading zero if the number is less than 10', () => {
@@ -203,22 +223,59 @@ describe('createBotMessage', () => {
       timestamp: '2024-10-30T14:00:00Z',
     });
   });
+
+  it('should create a bot message with source links', () => {
+    const message = createBotMessage({
+      name: 'BotMaster',
+      avatar: 'bot-avatar.png',
+      content: 'Bot message content',
+      timestamp: '2024-10-30T14:00:00Z',
+      isLoading: true,
+      sources: transformDocumentsToSources(referenced_documents),
+    });
+
+    expect(message?.sources?.sources).toHaveLength(2);
+    expect(message).toEqual(
+      expect.objectContaining({
+        role: 'bot',
+        name: 'BotMaster',
+        avatar: 'bot-avatar.png',
+        isLoading: true,
+        content: 'Bot message content',
+        timestamp: '2024-10-30T14:00:00Z',
+        sources: {
+          sources: expect.arrayContaining([
+            expect.objectContaining({
+              isExternal: true,
+              link: expect.anything(),
+              title: expect.anything(),
+            }),
+          ]),
+        },
+      }),
+    );
+  });
 });
 
 describe('getMessageData', () => {
   it('should return content and timestamp from message.kwargs', () => {
     const message = {
-      kwargs: {
-        content: 'This is the message content',
-        response_metadata: {
-          created_at: 1730121598867,
-        },
+      content: 'This is the message content',
+      response_metadata: {
+        created_at: 1744695548.101305,
+        model: 'granite3-dense:8b',
       },
+      additional_kwargs: {},
+      id: 1,
+      type: 'human',
+      name: '',
     };
-    const result = getMessageData(message as any);
+    const result = getMessageData(message);
     expect(result).toEqual({
       content: 'This is the message content',
-      timestamp: '28/10/2024, 13:19:58',
+      model: 'granite3-dense:8b',
+      timestamp: '15/04/2025, 05:39:08',
+      referencedDocuments: [],
     });
   });
 
@@ -228,10 +285,74 @@ describe('getMessageData', () => {
     expect(result).toEqual({
       content: '',
       timestamp: '',
+      model: undefined,
+      referencedDocuments: [],
+    });
+  });
+
+  it('should return referenced_documents as sources from additional_kwargs', () => {
+    const message = {
+      additional_kwargs: {
+        referenced_documents,
+      },
+    };
+    const result = getMessageData(message as any);
+    expect(result).toEqual({
+      content: '',
+      timestamp: '',
+      model: undefined,
+      referencedDocuments: referenced_documents,
     });
   });
 });
 
+describe('transformDocumentsToSources', () => {
+  it('should return undefined if invalid values are passed to referenced_documents', () => {
+    expect(
+      transformDocumentsToSources(undefined as unknown as any),
+    ).toBeUndefined();
+    expect(transformDocumentsToSources(null as unknown as any)).toBeUndefined();
+    expect(transformDocumentsToSources([] as unknown as any)).toBeUndefined();
+  });
+
+  it('should transform referenced documents into message sources', () => {
+    const sources = transformDocumentsToSources(referenced_documents);
+    expect(sources?.sources).toHaveLength(2);
+    expect(sources).toEqual(
+      expect.objectContaining({
+        sources: expect.arrayContaining([
+          expect.objectContaining({
+            isExternal: true,
+            link: expect.anything(),
+            title: expect.anything(),
+          }),
+        ]),
+      }),
+    );
+  });
+
+  it('should add document description in referenced documents into message sources', () => {
+    const sources = transformDocumentsToSources(
+      referenced_documents.map(rd => ({
+        ...rd,
+        doc_description: 'Document description test',
+      })),
+    );
+    expect(sources?.sources).toHaveLength(2);
+    expect(sources).toEqual(
+      expect.objectContaining({
+        sources: expect.arrayContaining([
+          expect.objectContaining({
+            isExternal: true,
+            link: expect.anything(),
+            title: expect.anything(),
+            body: 'Document description test',
+          }),
+        ]),
+      }),
+    );
+  });
+});
 describe('getCategorizeMessages', () => {
   const addProps = (c: ConversationSummary) => ({
     customProp: `prop-${c.conversation_id}`,
@@ -240,36 +361,28 @@ describe('getCategorizeMessages', () => {
   const messages: ConversationList = [
     {
       conversation_id: '1',
-      lastMessageTimestamp: new Date().toISOString(),
-      summary: 'Today message',
+      last_message_timestamp: Date.now() / 1000,
+      topic_summary: 'Today message',
     },
     {
       conversation_id: '2',
-      lastMessageTimestamp: new Date(
-        Date.now() - 24 * 60 * 60 * 1000,
-      ).toISOString() as any,
-      summary: 'Yesterday message',
+      last_message_timestamp: (Date.now() - 24 * 60 * 60 * 1000) / 1000,
+      topic_summary: 'Yesterday message',
     },
     {
       conversation_id: '3',
-      lastMessageTimestamp: new Date(
-        Date.now() - 5 * 24 * 60 * 60 * 1000,
-      ).toISOString(),
-      summary: '5 days ago',
+      last_message_timestamp: (Date.now() - 5 * 24 * 60 * 60 * 1000) / 1000,
+      topic_summary: '5 days ago',
     },
     {
       conversation_id: '4',
-      lastMessageTimestamp: new Date(
-        Date.now() - 15 * 24 * 60 * 60 * 1000,
-      ).toISOString(),
-      summary: '15 days ago',
+      last_message_timestamp: (Date.now() - 15 * 24 * 60 * 60 * 1000) / 1000,
+      topic_summary: '15 days ago',
     },
     {
       conversation_id: '5',
-      lastMessageTimestamp: new Date(
-        Date.now() - 45 * 24 * 60 * 60 * 1000,
-      ).toISOString(),
-      summary: '45 days ago',
+      last_message_timestamp: (Date.now() - 45 * 24 * 60 * 60 * 1000) / 1000,
+      topic_summary: '45 days ago',
     },
   ];
 
@@ -289,7 +402,7 @@ describe('getCategorizeMessages', () => {
     expect(result['Previous 30 Days'][0].text).toBe('15 days ago');
 
     const monthYearKey = new Date(
-      messages[4].lastMessageTimestamp,
+      messages[4].last_message_timestamp * 1000,
     ).toLocaleString('default', {
       month: 'long',
       year: 'numeric',

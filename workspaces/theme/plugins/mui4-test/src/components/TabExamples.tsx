@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-import React from 'react';
+import type { ChangeEvent } from 'react';
+
+import { useState } from 'react';
 import Tabs, { TabsProps } from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
 import Box from '@material-ui/core/Box';
@@ -27,8 +29,8 @@ export const TabExamples = () => {
     'secondary',
   ];
 
-  const [selectedTab, setSelectedTab] = React.useState(0);
-  const handleChange = (_event: React.ChangeEvent<{}>, newValue: number) => {
+  const [selectedTab, setSelectedTab] = useState(0);
+  const handleChange = (_event: ChangeEvent<{}>, newValue: number) => {
     setSelectedTab(newValue);
   };
 
@@ -39,8 +41,8 @@ export const TabExamples = () => {
           <div style={{ padding: '20px 0' }}>color: {color ?? 'undefined'}</div>
           <Tabs
             value={selectedTab}
-            indicatorColor="primary"
-            textColor="primary"
+            indicatorColor={color}
+            textColor={color}
             onChange={handleChange}
           >
             <Tab label="One" />
@@ -50,6 +52,19 @@ export const TabExamples = () => {
           </Tabs>
         </div>
       ))}
+
+      <div style={{ padding: '20px 0' }}>long titles and scroll buttons</div>
+      <Tabs
+        value={selectedTab}
+        onChange={handleChange}
+        scrollButtons="on"
+        variant="scrollable"
+      >
+        <Tab label="Tab one with extra long title" />
+        <Tab label="Tab two with extra long title" />
+        <Tab label="Tab three with extra long title" />
+        <Tab label="Disabled tab with extra long title" disabled />
+      </Tabs>
 
       <div style={{ padding: '20px 0' }}>Vertical test</div>
       <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>

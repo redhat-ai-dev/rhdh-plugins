@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Backstage Authors
+ * Copyright Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,33 +20,23 @@ import { useAsync } from 'react-use';
 import { TabbedLayout } from '@backstage/core-components';
 import { useApi, useRouteRefParams } from '@backstage/core-plugin-api';
 
-import {
-  orchestratorWorkflowUsePermission,
-  orchestratorWorkflowUseSpecificPermission,
-} from '@red-hat-developer-hub/backstage-plugin-orchestrator-common';
+import Grid from '@mui/material/Grid';
 
 import { orchestratorApiRef } from '../../api';
-import { usePermissionArrayDecision } from '../../hooks/usePermissionArray';
 import { workflowRouteRef, workflowRunsRoutePath } from '../../routes';
 import { BaseOrchestratorPage } from '../BaseOrchestratorPage';
-import { WorkflowRunsTabContent } from '../WorkflowRunsTabContent';
+import { WorkflowRunsTabContent } from '../OrchestratorPage/WorkflowRunsTabContent';
+import { RunButton } from './RunButton';
 import { WorkflowDetailsTabContent } from './WorkflowDetailsTabContent';
-import { WorkflowPageTabContent } from './WorkflowPageTabContent';
 
 export const WorkflowPage = () => {
   const { workflowId } = useRouteRefParams(workflowRouteRef);
   const orchestratorApi = useApi(orchestratorApiRef);
 
-  const { loading: loadingPermission, allowed: canRun } =
-    usePermissionArrayDecision([
-      orchestratorWorkflowUsePermission,
-      orchestratorWorkflowUseSpecificPermission(workflowId),
-    ]);
-
   const {
     value: workflowOverviewDTO,
-    loading,
-    error,
+    loading: loadingWorkflowOverview,
+    error: errorWorkflowOverview,
   } = useAsync(() => {
     return orchestratorApi.getWorkflowOverview(workflowId);
   }, []);
@@ -54,33 +44,26 @@ export const WorkflowPage = () => {
   return (
     <BaseOrchestratorPage
       title={workflowOverviewDTO?.data.name || workflowId}
-      type="Workflows"
+      type="Orchestrator"
       typeLink="/orchestrator"
       noPadding
     >
       <TabbedLayout>
         <TabbedLayout.Route path="/" title="Workflow details">
-          <WorkflowPageTabContent
-            error={error}
-            loadingPermission={loadingPermission}
-            loading={loading}
-            canRun={canRun}
-          >
+          <Grid container spacing={2}>
+            <RunButton isAvailable={workflowOverviewDTO?.data.isAvailable} />
             <WorkflowDetailsTabContent
-              loading={loading}
+              loadingWorkflowOverview={loadingWorkflowOverview}
               workflowOverviewDTO={workflowOverviewDTO?.data}
+              errorWorkflowOverview={errorWorkflowOverview}
             />
-          </WorkflowPageTabContent>
+          </Grid>
         </TabbedLayout.Route>
         <TabbedLayout.Route path={workflowRunsRoutePath} title="Workflow runs">
-          <WorkflowPageTabContent
-            error={error}
-            loadingPermission={loadingPermission}
-            loading={loading}
-            canRun={canRun}
-          >
+          <Grid container spacing={2}>
+            <RunButton isAvailable={workflowOverviewDTO?.data.isAvailable} />
             <WorkflowRunsTabContent />
-          </WorkflowPageTabContent>
+          </Grid>
         </TabbedLayout.Route>
       </TabbedLayout>
     </BaseOrchestratorPage>

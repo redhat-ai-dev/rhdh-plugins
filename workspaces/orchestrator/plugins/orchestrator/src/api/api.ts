@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Backstage Authors
+ * Copyright Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import { createApiRef } from '@backstage/core-plugin-api';
 import type { JsonObject } from '@backstage/types';
 
 import { AxiosResponse } from 'axios';
 
 import {
-  AssessedProcessInstanceDTO,
+  AuthToken,
   ExecuteWorkflowResponseDTO,
   Filter,
   InputSchemaResponseDTO,
   PaginationInfoDTO,
+  ProcessInstanceDTO,
   ProcessInstanceListResultDTO,
   WorkflowOverviewDTO,
   WorkflowOverviewListResultDTO,
@@ -40,15 +42,13 @@ export interface OrchestratorApi {
   executeWorkflow(args: {
     workflowId: string;
     parameters: JsonObject;
+    authTokens: AuthToken[];
     businessKey?: string;
   }): Promise<AxiosResponse<ExecuteWorkflowResponseDTO>>;
 
   getWorkflowSource(workflowId: string): Promise<AxiosResponse<string>>;
 
-  getInstance(
-    instanceId: string,
-    includeAssessment: boolean,
-  ): Promise<AxiosResponse<AssessedProcessInstanceDTO>>;
+  getInstance(instanceId: string): Promise<AxiosResponse<ProcessInstanceDTO>>;
 
   getWorkflowDataInputSchema(
     workflowId: string,
@@ -58,6 +58,8 @@ export interface OrchestratorApi {
   getWorkflowOverview(
     workflowId: string,
   ): Promise<AxiosResponse<WorkflowOverviewDTO>>;
+
+  pingWorkflowService(workflowId: string): Promise<AxiosResponse<boolean>>;
 
   listWorkflowOverviews(): Promise<
     AxiosResponse<WorkflowOverviewListResultDTO>

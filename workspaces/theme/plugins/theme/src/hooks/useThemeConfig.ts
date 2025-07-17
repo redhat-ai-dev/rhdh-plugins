@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React from 'react';
+import { useMemo } from 'react';
 import { ConfigApi, configApiRef, useApi } from '@backstage/core-plugin-api';
 import { ThemeConfig } from '../types';
 
@@ -26,7 +26,7 @@ export const useThemeConfig = (themeName: string): ThemeConfig => {
   } catch (err) {
     // useApi won't be initialized initially in createApp theme provider, and will get updated later
   }
-  return React.useMemo(() => {
+  return useMemo(() => {
     if (!configApi) {
       return {
         mode: themeName.includes('dark') ? 'dark' : 'light',
@@ -39,7 +39,7 @@ export const useThemeConfig = (themeName: string): ThemeConfig => {
       themeConfig.mode = themeName.includes('dark') ? 'dark' : 'light';
     }
 
-    if (Array.isArray(themeConfig?.pageTheme?.default.fontColor)) {
+    if (Array.isArray(themeConfig?.pageTheme?.default?.fontColor)) {
       themeConfig.pageTheme.default.fontColor =
         themeConfig.pageTheme.default.fontColor[0];
     }

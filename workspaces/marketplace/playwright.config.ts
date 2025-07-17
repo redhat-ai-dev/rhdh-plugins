@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Backstage Authors
+ * Copyright The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,11 +28,11 @@ export default defineConfig({
   },
 
   // Run your local dev server before starting the tests
-  webServer: process.env.CI
+  webServer: process.env.PLAYWRIGHT_URL
     ? []
     : [
         {
-          command: 'yarn dev',
+          command: 'yarn start',
           port: 3000,
           reuseExistingServer: true,
           timeout: 60_000,
@@ -47,9 +47,7 @@ export default defineConfig({
 
   use: {
     actionTimeout: 0,
-    baseURL:
-      process.env.PLAYWRIGHT_URL ??
-      (process.env.CI ? 'http://localhost:7007' : 'http://localhost:3000'),
+    baseURL: process.env.PLAYWRIGHT_URL ?? 'http://localhost:3000',
     screenshot: 'only-on-failure',
     trace: 'on-first-retry',
   },
