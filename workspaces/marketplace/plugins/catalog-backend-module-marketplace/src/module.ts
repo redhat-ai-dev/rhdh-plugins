@@ -1,5 +1,5 @@
 /*
- * Copyright Red Hat, Inc.
+ * Copyright The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,33 +21,83 @@ import {
 import { catalogProcessingExtensionPoint } from '@backstage/plugin-catalog-node/alpha';
 
 import { MarketplacePluginProcessor } from './processors/MarketplacePluginProcessor';
-import { MarketplacePluginListProcessor } from './processors/MarketplacePluginListProcessor';
-import { DynamicPluginInstallStatusProcessor } from './processors/DynamicPluginInstallStatusProcessor';
-import { LocalPluginInstallStatusProcessor } from './processors/LocalPluginInstallStatusProcessor';
+import { MarketplaceCollectionProcessor } from './processors/MarketplaceCollectionProcessor';
+import { DynamicPackageInstallStatusProcessor } from './processors/DynamicPackageInstallStatusProcessor';
+import { LocalPackageInstallStatusProcessor } from './processors/LocalPackageInstallStatusProcessor';
 import { MarketplacePackageProcessor } from './processors/MarketplacePackageProcessor';
+import { MarketplacePluginProvider } from './providers/MarketplacePluginProvider';
+import { MarketplacePackageProvider } from './providers/MarketplacePackageProvider';
+import { dynamicPluginsServiceRef } from '@backstage/backend-dynamic-feature-service';
+import { CatalogClient } from '@backstage/catalog-client';
+import { PluginInstallStatusProcessor } from './processors/PluginInstallStatusProcessor';
 
 /**
  * @public
  */
 export const catalogModuleMarketplace = createBackendModule({
   pluginId: 'catalog',
-  moduleId: 'marketplace',
+  moduleId: 'extensions',
   register(reg) {
     reg.registerInit({
       deps: {
         logger: coreServices.logger,
-        catalog: catalogProcessingExtensionPoint,
-        discovery: coreServices.discovery,
         auth: coreServices.auth,
+        discovery: coreServices.discovery,
+        catalog: catalogProcessingExtensionPoint,
+        pluginProvider: dynamicPluginsServiceRef,
+        cache: coreServices.cache,
+        scheduler: coreServices.scheduler,
       },
-      async init({ logger, catalog, discovery, auth }) {
-        logger.info('Adding Marketplace processors to catalog...');
+      async init({
+        logger,
+        auth,
+        discovery,
+        catalog,
+        pluginProvider,
+        cache,
+        scheduler,
+      }) {
+        logger.info(
+          'Adding Marketplace providers and processors to catalog...',
+        );
+        const taskRunner = scheduler.createScheduledTaskRunner({
+          frequency: { minutes: 30 },
+          timeout: { minutes: 10 },
+        });
+        const delayedTaskRunner = scheduler.createScheduledTaskRunner({
+          frequency: { minutes: 30 },
+          timeout: { minutes: 10 },
+          initialDelay: { seconds: 20 },
+        });
+
+        const catalogApi = new CatalogClient({ discoveryApi: discovery });
+
+        catalog.addEntityProvider(new MarketplacePackageProvider(taskRunner));
+        catalog.addEntityProvider(
+          new MarketplacePluginProvider(delayedTaskRunner),
+        );
+        // Disabling the collection provider as collections/all.yaml is already commented in RHDH 1.5 image.
+        // catalog.addEntityProvider(
+        //   new MarketplaceCollectionProvider(taskRunner),
+        // );
         catalog.addProcessor(new MarketplacePluginProcessor());
-        catalog.addProcessor(new MarketplacePluginListProcessor());
-        catalog.addProcessor(new LocalPluginInstallStatusProcessor());
+        catalog.addProcessor(new MarketplaceCollectionProcessor());
+        catalog.addProcessor(new LocalPackageInstallStatusProcessor());
+        catalog.addProcessor(
+          new DynamicPackageInstallStatusProcessor({
+            logger,
+            pluginProvider,
+          }),
+        );
         catalog.addProcessor(new MarketplacePackageProcessor());
         catalog.addProcessor(
-          new DynamicPluginInstallStatusProcessor(discovery, auth),
+          new PluginInstallStatusProcessor({
+            auth,
+            catalog: catalogApi,
+            logger,
+            cache,
+            scheduler,
+          }),
         );
       },
     });

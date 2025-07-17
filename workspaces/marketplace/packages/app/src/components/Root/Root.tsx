@@ -1,5 +1,5 @@
 /*
- * Copyright Red Hat, Inc.
+ * Copyright The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { PropsWithChildren } from 'react';
+import { PropsWithChildren } from 'react';
 import { makeStyles } from '@material-ui/core';
 import HomeIcon from '@material-ui/icons/Home';
 import ExtensionIcon from '@material-ui/icons/Extension';
@@ -27,6 +27,8 @@ import {
   UserSettingsSignInAvatar,
 } from '@backstage/plugin-user-settings';
 import { SidebarSearchModal } from '@backstage/plugin-search';
+import { Administration } from '@backstage-community/plugin-rbac';
+
 import {
   Sidebar,
   sidebarConfig,
@@ -93,11 +95,8 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
         <SidebarItem icon={ExtensionIcon} to="api-docs" text="APIs" />
         <SidebarItem icon={LibraryBooks} to="docs" text="Docs" />
         <SidebarItem icon={CreateComponentIcon} to="create" text="Create..." />
-        <SidebarItem
-          icon={MarketplaceIcon}
-          to="marketplace"
-          text="Marketplace"
-        />
+        <SidebarItem icon={MarketplaceIcon} to="extensions" text="Extensions" />
+        <Administration />
         {/* End global nav */}
         <SidebarDivider />
         <SidebarScrollWrapper>

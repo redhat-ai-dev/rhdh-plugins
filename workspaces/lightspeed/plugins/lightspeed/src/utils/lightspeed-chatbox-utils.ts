@@ -13,15 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Conversation } from '@patternfly/chatbot';
+import { Conversation, SourcesCardProps } from '@patternfly/chatbot';
+import { PopoverProps } from '@patternfly/react-core';
 
-import { BaseMessage, ConversationList, ConversationSummary } from '../types';
+import {
+  BaseMessage,
+  ConversationList,
+  ConversationSummary,
+  ReferencedDocument,
+  ReferencedDocuments,
+} from '../types';
 
-export const getFootnoteProps = () => ({
-  label: 'Lightspeed uses AI. Check for mistakes.',
+export const getFootnoteProps = (additionalClassName: string) => ({
+  label: 'Always check AI/LLM generated responses for accuracy prior to use.',
   popover: {
+    popoverProps: {
+      className: additionalClassName ?? '',
+    } as PopoverProps,
     title: 'Verify accuracy',
-    description: `While Lightspeed strives for accuracy, there's always a possibility of errors. It's a good practice to verify critical information from reliable sources, especially if it's crucial for decision-making or actions.`,
+    description: `While Developer Lightspeed strives for accuracy, there's always a possibility of errors. It's a good practice to verify critical information from reliable sources, especially if it's crucial for decision-making or actions.`,
     bannerImage: {
       src: 'https://cdn.dribbble.com/userupload/10651749/file/original-8a07b8e39d9e8bf002358c66fce1223e.gif',
       alt: 'Example image for footnote popover',
@@ -85,6 +95,10 @@ type MessageProps = {
   name?: string;
   avatar?: string | any;
   isLoading?: boolean;
+  error?: {
+    title: string;
+  };
+  sources?: SourcesCardProps;
 };
 
 export const createMessage = ({
@@ -94,6 +108,8 @@ export const createMessage = ({
   isLoading = false,
   content,
   timestamp,
+  error,
+  sources,
 }: MessageProps & { role: 'user' | 'bot' }) => ({
   role,
   name,
@@ -101,6 +117,8 @@ export const createMessage = ({
   isLoading,
   content,
   timestamp,
+  error,
+  sources,
 });
 
 export const createUserMessage = (props: MessageProps) =>
@@ -118,9 +136,26 @@ export const createBotMessage = (props: MessageProps) =>
 
 export const getMessageData = (message: BaseMessage) => {
   return {
-    model: message?.kwargs?.response_metadata?.model,
-    content: message?.kwargs?.content || '',
-    timestamp: getTimestamp(message?.kwargs?.response_metadata?.created_at),
+    model: message?.response_metadata?.model,
+    content: message?.content || '',
+    timestamp: getTimestamp(message?.response_metadata?.created_at * 1000),
+    referencedDocuments: message?.additional_kwargs?.referenced_documents ?? [],
+  };
+};
+
+export const transformDocumentsToSources = (
+  referenced_documents: ReferencedDocuments,
+): SourcesCardProps | undefined => {
+  if (!referenced_documents || referenced_documents?.length === 0) {
+    return undefined;
+  }
+  return {
+    sources: referenced_documents.map((doc: ReferencedDocument) => ({
+      body: doc.doc_description,
+      title: doc.doc_title,
+      link: doc?.doc_url,
+      isExternal: true,
+    })),
   };
 };
 
@@ -149,39 +184,42 @@ export const getCategorizeMessages = (
     'Previous 7 Days': [],
     'Previous 30 Days': [],
   };
+  messages
+    .sort((a, b) => b.last_message_timestamp - a.last_message_timestamp)
+    .forEach(c => {
+      const messageDate = new Date(c.last_message_timestamp * 1000);
+      const messageDayString = messageDate.toDateString();
+      const dayDifference = getDayDifference(
+        now,
+        c.last_message_timestamp * 1000,
+      );
+      const message: Conversation = {
+        id: c.conversation_id,
+        text: c.topic_summary,
+        label: 'Options',
+        ...addProps(c),
+      };
 
-  messages.forEach(c => {
-    const messageDate = new Date(c.lastMessageTimestamp);
-    const messageDayString = messageDate.toDateString();
-    const dayDifference = getDayDifference(now, c.lastMessageTimestamp);
-
-    const message: Conversation = {
-      id: c.conversation_id,
-      text: c.summary,
-      label: 'Options',
-      ...addProps(c),
-    };
-
-    if (messageDayString === today) {
-      categorizedMessages.Today.push(message);
-    } else if (dayDifference === 1) {
-      categorizedMessages.Yesterday.push(message);
-    } else if (dayDifference <= 7) {
-      categorizedMessages['Previous 7 Days'].push(message);
-    } else if (dayDifference <= 30) {
-      categorizedMessages['Previous 30 Days'].push(message);
-    } else {
-      // handle month-wise grouping
-      const monthYear = messageDate.toLocaleString('default', {
-        month: 'long',
-        year: 'numeric',
-      });
-      if (!categorizedMessages[monthYear]) {
-        categorizedMessages[monthYear] = [];
+      if (messageDayString === today) {
+        categorizedMessages.Today.push(message);
+      } else if (dayDifference === 1) {
+        categorizedMessages.Yesterday.push(message);
+      } else if (dayDifference <= 7) {
+        categorizedMessages['Previous 7 Days'].push(message);
+      } else if (dayDifference <= 30) {
+        categorizedMessages['Previous 30 Days'].push(message);
+      } else {
+        // handle month-wise grouping
+        const monthYear = messageDate.toLocaleString('default', {
+          month: 'long',
+          year: 'numeric',
+        });
+        if (!categorizedMessages[monthYear]) {
+          categorizedMessages[monthYear] = [];
+        }
+        categorizedMessages[monthYear].push(message);
       }
-      categorizedMessages[monthYear].push(message);
-    }
-  });
+    });
 
   const filteredCategories = Object.keys(categorizedMessages).reduce(
     (result, category) => {

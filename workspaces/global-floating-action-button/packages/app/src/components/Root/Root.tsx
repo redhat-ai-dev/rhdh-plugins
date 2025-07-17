@@ -45,7 +45,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import GroupIcon from '@mui/icons-material/People';
 import SearchIcon from '@mui/icons-material/Search';
 import { makeStyles } from '@mui/styles';
-import React, { PropsWithChildren } from 'react';
+import { PropsWithChildren } from 'react';
 import LogoFull from './LogoFull';
 import LogoIcon from './LogoIcon';
 
@@ -98,14 +98,14 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
           },
           {
             slot: Slot.BOTTOM_LEFT,
-            icon: <LibraryBooks />,
-            label: 'Api Docs',
-            toolTip: 'Api Docs',
+            icon: <ExtensionIcon />,
+            label: 'APIs',
+            toolTip: 'APIs',
             to: '/api-docs',
           },
           {
             slot: Slot.BOTTOM_LEFT,
-            icon: <ExtensionIcon />,
+            icon: <LibraryBooks />,
             showLabel: true,
             label: 'Docs',
             toolTip: 'Docs',
@@ -118,19 +118,10 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
             onClick: toggleModal,
           },
           {
-            color: 'success',
             icon: <GitHubIcon />,
-            label: 'RHDH pluginsssssssssssssss',
+            label: 'RHDH plugins',
             showLabel: true,
             toolTip: 'RHDH plugins',
-            to: 'https://github.com/redhat-developer/rhdh-plugins',
-            visibleOnPaths: ['/catalog'],
-          },
-          {
-            color: 'success',
-            icon: <GitHubIcon />,
-            label: 'RHDH pluginsssssssssssssss',
-            toolTip: 'External link',
             to: 'https://github.com/redhat-developer/rhdh-plugins',
             visibleOnPaths: ['/catalog'],
           },

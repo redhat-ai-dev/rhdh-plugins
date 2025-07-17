@@ -14,32 +14,31 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
-import classnames from 'classnames';
 
 import { makeStyles } from '@mui/styles';
 import { FABWithSubmenu } from './FABWithSubmenu';
-import { FAB } from './FAB';
+import { CustomFab } from './CustomFab';
 import { FloatingActionButton, Slot } from '../types';
 import { filterAndSortButtons } from '../utils';
 
 const useStyles = makeStyles(theme => ({
-  fabContainer: {
-    zIndex: 200,
-    display: 'flex',
-    position: 'fixed',
-    gap: '10px',
-  },
   'page-end': {
-    bottom: theme && Object.keys(theme).length > 0 ? theme?.spacing(2) : '16px',
-    right: theme && Object.keys(theme).length > 0 ? theme?.spacing(2) : '16px',
+    bottom: `calc(${theme?.spacing?.(2) ?? '16px'} + 1.5em)`,
+    right: `calc(${theme?.spacing?.(2) ?? '16px'} + 1.5em)`,
     alignItems: 'end',
+
+    // When quickstart drawer is open, adjust margin
+    '.quickstart-drawer-open &': {
+      transition: 'margin-right 0.3s ease',
+      marginRight: 'var(--quickstart-drawer-width, 500px) ',
+    },
   },
   'bottom-left': {
-    bottom: theme && Object.keys(theme).length > 0 ? theme?.spacing(2) : '16px',
-    paddingLeft:
-      theme && Object.keys(theme).length > 0 ? theme?.spacing(2) : '16px',
+    bottom: `calc(${theme?.spacing?.(2) ?? '16px'} + 1.5em)`,
+    paddingLeft: theme?.spacing?.(2) ?? '16px',
     alignItems: 'start',
   },
 }));
@@ -51,26 +50,29 @@ export const FloatingButton = ({
   floatingButtons: FloatingActionButton[];
   slot: Slot;
 }) => {
+  const timeoutRef = useRef<NodeJS.Timeout>();
   const { pathname } = useLocation();
-  const [subMenuDirection, setSubMenuDirection] = React.useState<
-    'column' | 'column-reverse'
-  >('column');
   const fabButton = useStyles();
+  const [targetElement, setTargetElement] = useState<Element | null>(null);
 
-  React.useEffect(() => {
-    const floatingButtonElement = document.getElementById('floating-button');
-    const screenHeight = window.innerHeight;
-    if (floatingButtonElement) {
-      const { top } = floatingButtonElement?.getBoundingClientRect();
-      if (top < screenHeight / 2) {
-        setSubMenuDirection('column');
+  useEffect(() => {
+    const checkTargetElement = () => {
+      const element =
+        document.querySelector('[class^="BackstagePage-root"]') ??
+        document.querySelector('main');
+      if (element) {
+        setTargetElement(element);
       } else {
-        setSubMenuDirection('column-reverse');
+        timeoutRef.current = setTimeout(checkTargetElement, 300);
       }
-    }
-  }, [pathname]);
+    };
+    checkTargetElement();
+    return () => {
+      clearTimeout(timeoutRef.current);
+    };
+  }, [pathname, targetElement]);
 
-  const fabs = React.useMemo(
+  const fabs = useMemo(
     () => filterAndSortButtons(floatingButtons, pathname),
     [floatingButtons, pathname],
   );
@@ -78,20 +80,31 @@ export const FloatingButton = ({
   if (fabs?.length === 0) {
     return null;
   }
-  return (
-    <div
-      className={classnames(fabButton.fabContainer, fabButton[slot])}
-      style={{
-        flexDirection: subMenuDirection,
-      }}
-      id="floating-button"
-      data-testId="floating-button"
-    >
-      {fabs.length > 1 ? (
-        <FABWithSubmenu fabs={fabs} slot={slot} />
-      ) : (
-        <FAB actionButton={fabs[0]} />
-      )}
-    </div>
-  );
+
+  let fabDiv;
+  if (fabs.length > 1) {
+    fabDiv = (
+      <FABWithSubmenu className={fabButton[slot]} fabs={fabs} slot={slot} />
+    );
+  } else {
+    fabDiv = (
+      <div
+        style={{
+          zIndex: 200,
+          display: 'flex',
+          position: 'fixed',
+        }}
+        className={fabButton[slot]}
+        id="floating-button"
+        data-testid="floating-button"
+      >
+        <CustomFab
+          actionButton={{ color: 'info', iconColor: 'white', ...fabs[0] }}
+        />
+      </div>
+    );
+  }
+  return targetElement
+    ? createPortal(fabDiv, targetElement)
+    : createPortal(fabDiv, document.body);
 };

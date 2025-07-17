@@ -1,5 +1,77 @@
 ### Dependencies
 
+## 6.1.3
+
+### Patch Changes
+
+- 22e947b: Bump to backstage version 1.39.1
+- Updated dependencies [22e947b]
+  - @red-hat-developer-hub/backstage-plugin-bulk-import-common@1.7.1
+
+## 6.1.2
+
+### Patch Changes
+
+- 9171b96: Updated dependency `@types/express` to `4.17.23`.
+- 8c2e067: Updated dependency `openapicmd` to `2.7.0`.
+  Updated dependency `@mui/styles` to `5.17.1`.
+  Updated dependency `@playwright/test` to `1.52.0`.
+
+## 6.1.1
+
+### Patch Changes
+
+- 571d93e: Updated dependency `@types/express` to `4.17.22`.
+- be43040: Updated dependency `@openapitools/openapi-generator-cli` to `2.20.2`.
+  Updated dependency `openapicmd` to `2.6.2`.
+
+## 6.1.0
+
+### Minor Changes
+
+- 361daf4: Backstage version bump to v1.38.1
+
+### Patch Changes
+
+- a9e5f32: Updated dependency `@openapitools/openapi-generator-cli` to `2.20.0`.
+  Updated dependency `prettier` to `3.5.3`.
+  Updated dependency `@redhat-developer/red-hat-developer-hub-theme` to `0.5.1`.
+  Updated dependency `@red-hat-developer-hub/backstage-plugin-theme` to `^0.6.0`.
+  Updated dependency `@janus-idp/cli` to `3.5.0`.
+- Updated dependencies [a9e5f32]
+- Updated dependencies [361daf4]
+  - @red-hat-developer-hub/backstage-plugin-bulk-import-common@1.7.0
+
+## 6.0.0
+
+### Major Changes
+
+- b806644: Use newer audit-log package from Backstage. Note: Breaking change – audit log format has changed.
+
+## 5.4.0
+
+### Minor Changes
+
+- 95b14e6: Backstage version bump to v1.36.1
+
+### Patch Changes
+
+- Updated dependencies [95b14e6]
+  - @red-hat-developer-hub/backstage-plugin-bulk-import-common@1.6.0
+
+## 5.3.0
+
+### Minor Changes
+
+- fbbd37f: Backstage version bump to v1.35.0
+
+### Patch Changes
+
+- 05a1ce0: Updated dependency `@openapitools/openapi-generator-cli` to `2.16.3`.
+- 816d8bc: Updated dependency `@openapitools/openapi-generator-cli` to `2.16.2`.
+- Updated dependencies [fbbd37f]
+  - @red-hat-developer-hub/backstage-plugin-bulk-import-common@1.5.0
+
 ## 5.2.2
 
 ### Patch Changes

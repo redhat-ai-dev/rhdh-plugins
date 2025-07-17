@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import React from 'react';
+// eslint-disable-next-line no-restricted-imports
+import { GlobalStyles } from '@mui/material';
 import { Navigate, Route } from 'react-router-dom';
 import { apiDocsPlugin, ApiExplorerPage } from '@backstage/plugin-api-docs';
 import {
@@ -52,8 +53,21 @@ import { AppRouter, FlatRoutes } from '@backstage/core-app-api';
 import { CatalogGraphPage } from '@backstage/plugin-catalog-graph';
 import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
+import { SignalsDisplay } from '@backstage/plugin-signals';
+import { NotificationsPage } from '@backstage/plugin-notifications';
+import { githubAuthApiRef } from '@backstage/core-plugin-api';
+
+import { getAllThemes } from '@red-hat-developer-hub/backstage-plugin-theme';
+import ManageAccounts from '@mui/icons-material/ManageAccountsOutlined';
+import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
+import Logout from '@mui/icons-material/LogoutOutlined';
 
 const app = createApp({
+  icons: {
+    manageAccounts: ManageAccounts,
+    account: AccountCircleOutlinedIcon,
+    logout: Logout,
+  },
   apis,
   bindRoutes({ bind }) {
     bind(catalogPlugin.externalRoutes, {
@@ -73,8 +87,23 @@ const app = createApp({
     });
   },
   components: {
-    SignInPage: props => <SignInPage {...props} auto providers={['guest']} />,
+    SignInPage: props => (
+      <SignInPage
+        {...props}
+        auto
+        providers={[
+          'guest',
+          {
+            id: 'github-auth-provider',
+            title: 'GitHub',
+            message: 'Sign in using GitHub',
+            apiRef: githubAuthApiRef,
+          },
+        ]}
+      />
+    ),
   },
+  themes: getAllThemes(),
 });
 
 const routes = (
@@ -98,6 +127,7 @@ const routes = (
     </Route>
     <Route path="/create" element={<ScaffolderPage />} />
     <Route path="/api-docs" element={<ApiExplorerPage />} />
+    <Route path="/notifications" element={<NotificationsPage />} />
     <Route
       path="/catalog-import"
       element={
@@ -116,8 +146,14 @@ const routes = (
 
 export default app.createRoot(
   <>
+    <GlobalStyles
+      styles={{
+        html: { overflowY: 'hidden' },
+      }}
+    />
     <AlertDisplay />
     <OAuthRequestDialog />
+    <SignalsDisplay />
     <AppRouter>
       <Root>{routes}</Root>
     </AppRouter>

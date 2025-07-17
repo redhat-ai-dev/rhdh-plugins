@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import React from 'react';
 import { Link } from '@backstage/core-components';
 import ListItem from '@mui/material/ListItem';
 import Box from '@mui/material/Box';
@@ -22,6 +21,7 @@ import Typography from '@mui/material/Typography';
 import { highlightMatch } from '../../utils/stringUtils';
 import { SearchResultProps } from '@backstage/plugin-search-react';
 import { Result, SearchDocument } from '@backstage/plugin-search-common';
+import { useAnalytics } from '@backstage/core-plugin-api';
 
 interface SearchResultItemProps {
   option: string;
@@ -35,16 +35,34 @@ export const SearchResultItem = ({
   query,
   result,
   renderProps,
-}: SearchResultItemProps) => (
-  <Link to={result?.document.location ?? '#'} underline="none">
-    <ListItem key={option} {...renderProps} sx={{ cursor: 'pointer', py: 2 }}>
-      <Box sx={{ display: 'flex', width: '100%' }}>
-        <Typography sx={{ color: 'text.primary', py: 0.5, flexGrow: 1 }}>
-          {option === 'No results found'
+}: SearchResultItemProps) => {
+  const isNoResultsFound = option === 'No results found';
+  const analytics = useAnalytics();
+
+  return (
+    <Box
+      component={isNoResultsFound ? 'div' : Link}
+      to={result?.document.location}
+      underline="none"
+      sx={{ width: '100%', ...(isNoResultsFound ? {} : { cursor: 'pointer' }) }}
+    >
+      <ListItem
+        {...renderProps}
+        sx={{ py: 1 }}
+        onClick={e => {
+          analytics.captureEvent('discover', result?.document.title ?? '', {
+            attributes: { to: result?.document.location ?? '#' },
+            value: result?.rank,
+          });
+          renderProps?.onClick?.(e);
+        }}
+      >
+        <Typography sx={{ color: 'text.primary', flexGrow: 1 }}>
+          {isNoResultsFound
             ? option
             : highlightMatch(option, query?.term ?? '')}
         </Typography>
-      </Box>
-    </ListItem>
-  </Link>
-);
+      </ListItem>
+    </Box>
+  );
+};

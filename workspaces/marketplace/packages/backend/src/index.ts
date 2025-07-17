@@ -1,5 +1,5 @@
 /*
- * Copyright Red Hat, Inc.
+ * Copyright The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,22 +15,27 @@
  */
 
 import { createBackend } from '@backstage/backend-defaults';
+import { dynamicPluginsFeatureLoader } from '@backstage/backend-dynamic-feature-service';
 
 const backend = createBackend();
 
-backend.add(import('@backstage/plugin-app-backend/alpha'));
-backend.add(import('@backstage/plugin-proxy-backend/alpha'));
+backend.add(import('@backstage/plugin-app-backend'));
+backend.add(import('@backstage/plugin-proxy-backend'));
 backend.add(import('@backstage/plugin-scaffolder-backend/alpha'));
 backend.add(import('@backstage/plugin-techdocs-backend/alpha'));
 
+backend.add(dynamicPluginsFeatureLoader());
+
 // auth plugin
 backend.add(import('@backstage/plugin-auth-backend'));
+backend.add(import('@backstage/plugin-auth-backend-module-github-provider'));
+
 // See https://backstage.io/docs/backend-system/building-backends/migrating#the-auth-plugin
 backend.add(import('@backstage/plugin-auth-backend-module-guest-provider'));
 // See https://backstage.io/docs/auth/guest/provider
 
 // catalog plugin
-backend.add(import('@backstage/plugin-catalog-backend/alpha'));
+backend.add(import('@backstage/plugin-catalog-backend'));
 backend.add(
   import('@backstage/plugin-catalog-backend-module-scaffolder-entity-model'),
 );
@@ -39,11 +44,12 @@ backend.add(
 backend.add(import('@backstage/plugin-catalog-backend-module-logs'));
 
 // permission plugin
-backend.add(import('@backstage/plugin-permission-backend/alpha'));
-// See https://backstage.io/docs/permissions/getting-started for how to create your own permission policy
-backend.add(
-  import('@backstage/plugin-permission-backend-module-allow-all-policy'),
-);
+backend.add(import('@backstage-community/plugin-rbac-backend'));
+// backend.add(import('@backstage/plugin-permission-backend/alpha'));
+// // See https://backstage.io/docs/permissions/getting-started for how to create your own permission policy
+// backend.add(
+//   import('@backstage/plugin-permission-backend-module-allow-all-policy'),
+// );
 
 // search plugin
 backend.add(import('@backstage/plugin-search-backend/alpha'));

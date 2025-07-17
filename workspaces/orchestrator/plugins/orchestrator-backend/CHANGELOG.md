@@ -1,5 +1,152 @@
 ### Dependencies
 
+## 6.1.4
+
+### Patch Changes
+
+- 1dbc797: Handle errors on fetch calls by adding try/catch blocks and logging
+- ff0f69e: update API - fetch executionSummary field
+  Use execution summary for results card
+- Updated dependencies [ff0f69e]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.28.4
+
+## 6.1.3
+
+### Patch Changes
+
+- Updated dependencies [a3df181]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.28.3
+
+## 6.1.2
+
+### Patch Changes
+
+- Updated dependencies [da78550]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.28.2
+
+## 6.1.1
+
+### Patch Changes
+
+- a9a6095: remove business key
+- Updated dependencies [a9a6095]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.28.1
+
+## 6.1.0
+
+### Minor Changes
+
+- 53f3ffb: implemented authorization widget for enabling specifying the required auth providers in the schema so the UI can pick it up from there and forward to workflow execution
+
+### Patch Changes
+
+- d68d693: Updated dependency `@types/express` to `4.17.23`.
+- Updated dependencies [53f3ffb]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.28.0
+
+## 6.0.3
+
+### Patch Changes
+
+- 4ecd9f0: Limit access to workflow instances to initiators only
+- 9bc8af0: remove failed nodes from previous executions/retriggers
+- 3b571b3: Updated dependency `@janus-idp/cli` to `3.6.1`.
+- 7509a73: skip cache availability check in selected functions
+- Updated dependencies [4ecd9f0]
+- Updated dependencies [9bc8af0]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.27.3
+
+## 6.0.2
+
+### Patch Changes
+
+- 7f6ca8a: add filter by variables and nested variables
+- Updated dependencies [c6b54ad]
+- Updated dependencies [7f6ca8a]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.27.2
+
+## 6.0.1
+
+### Patch Changes
+
+- 56c160b: Add endpoind to ping workflow service
+- 571d93e: Updated dependency `@types/express` to `4.17.22`.
+- Updated dependencies [56c160b]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.27.1
+
+## 6.0.0
+
+### Major Changes
+
+- ff929e2: feat(orchestrator): capturing the auth tokens from available SCM systems after user logsIn and then send it to backend-plugin.
+
+### Minor Changes
+
+- fc9ce7c: Backstage version bump to v1.37.1
+
+### Patch Changes
+
+- 5214a15: Dev change only - use @janus-idp/cli 3.2.0 instead of 3.5.0
+- 3ac726f: add workflow status (available/unavailable)
+- fd078b4: Use upstream AuditorService instead of the Janus-specific AuditLogger.
+- 2f33284: Update kie-tools, @janus/cli and Backstage supported version to the most recent ones.
+- a9e5f32: Updated dependency `@openapitools/openapi-generator-cli` to `2.20.0`.
+  Updated dependency `prettier` to `3.5.3`.
+  Updated dependency `@redhat-developer/red-hat-developer-hub-theme` to `0.5.1`.
+  Updated dependency `@red-hat-developer-hub/backstage-plugin-theme` to `^0.6.0`.
+  Updated dependency `@janus-idp/cli` to `3.5.0`.
+- 544c80a: Fix instance fetching to respect permissions
+- Updated dependencies [2f33284]
+- Updated dependencies [a9e5f32]
+- Updated dependencies [fc9ce7c]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.27.0
+
+## 5.2.3
+
+### Patch Changes
+
+- 691fd23: fix tests
+- Updated dependencies [691fd23]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.26.2
+
+## 5.2.2
+
+### Patch Changes
+
+- Updated dependencies [29cf5fb]
+- Updated dependencies [754a051]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.26.1
+
+## 5.2.1
+
+### Patch Changes
+
+- bad7cb0: updated dev mode to remove git configuration from the workflow repo, added checks for cloning path
+
+## 5.2.0
+
+### Minor Changes
+
+- 967c377: Fixed unsupported filter operators
+
+### Patch Changes
+
+- e3ebb0c: replace abort mutation with call to delete
+- 665947d: fix bug in error handling of execute API
+- 4e3ccc2: Add retrigger option to UI using v2 API
+- d1010f9: improve logging of router
+- bee24dc: add unavailable workflows to cache and overview
+- b0e3ede: improve data index network error
+- 10f17e3: Fixed a typo in FilterBuilder error message
+- aebd2b0: improved devMode, added podman and macos support
+- Updated dependencies [967c377]
+- Updated dependencies [05a1ce0]
+- Updated dependencies [816d8bc]
+- Updated dependencies [c7de094]
+- Updated dependencies [bee24dc]
+- Updated dependencies [d4fa6bf]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.26.0
+
 ## 5.1.1
 
 ### Patch Changes

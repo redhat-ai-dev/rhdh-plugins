@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React from 'react';
+import type { ComponentType } from 'react';
 
 import { createDevApp, DevAppPageOptions } from '@backstage/dev-utils';
 import { TestApiProvider } from '@backstage/test-utils';
@@ -39,7 +39,7 @@ import {
 } from '@backstage/plugin-home';
 
 import { PluginStore } from '@openshift/dynamic-plugin-sdk';
-import { getAllThemes } from '@redhat-developer/red-hat-developer-hub-theme';
+import { getAllThemes } from '@red-hat-developer-hub/backstage-plugin-theme';
 import { ScalprumContext, ScalprumState } from '@scalprum/react-core';
 
 import { QuickAccessApi, quickAccessApiRef } from '../src/api';
@@ -59,50 +59,53 @@ import {
   SearchBar,
   TopVisitedCard,
   WorldClock,
+  OnboardingSection,
+  EntitySection,
+  TemplateSection,
 } from '../src/plugin';
 import { HomePageCardMountPoint, QuickAccessLink } from '../src/types';
 import defaultQuickAccess from './quickaccess-default.json';
 
 const defaultMountPoints: HomePageCardMountPoint[] = [
   {
-    Component: SearchBar,
+    Component: OnboardingSection,
     config: {
       // prettier-ignore
       layouts: {
-        xl:  { w: 10, h: 1, x: 1 },
-        lg:  { w: 10, h: 1, x: 1 },
-        md:  { w: 10, h: 1, x: 1 },
-        sm:  { w: 10, h: 1, x: 1 },
-        xs:  { w: 12, h: 1 },
-        xxs: { w: 12, h: 1 },
+        xl: { w: 12, h: 5 },
+        lg: { w: 12, h: 5 },
+        md: { w: 12, h: 5 },
+        sm: { w: 12, h: 5 },
+        xs: { w: 12, h: 7 },
+        xxs: { w: 12, h: 13 },
       },
     },
   },
   {
-    Component: QuickAccessCard as React.ComponentType,
+    Component: EntitySection,
     config: {
       // prettier-ignore
       layouts: {
-        xl:  { w:  7, h: 8 },
-        lg:  { w:  7, h: 8 },
-        md:  { w:  7, h: 8 },
-        sm:  { w: 12, h: 8 },
-        xs:  { w: 12, h: 8 },
-        xxs: { w: 12, h: 8 },
+        xl: { w: 12, h: 6 },
+        lg: { w: 12, h: 6 },
+        md: { w: 12, h: 6 },
+        sm: { w: 12, h: 6 },
+        xs: { w: 12, h: 10 },
+        xxs: { w: 12, h: 14.5 },
       },
     },
   },
   {
-    Component: CatalogStarredEntitiesCard,
+    Component: TemplateSection,
     config: {
       // prettier-ignore
       layouts: {
-        xl:  { w:  5, h: 4, x: 7 },
-        lg:  { w:  5, h: 4, x: 7 },
-        md:  { w:  5, h: 4, x: 7 },
-        sm:  { w: 12, h: 4 },
-        xs:  { w: 12, h: 4 },
-        xxs: { w: 12, h: 4 },
+        xl:  { w: 12, h: 5 },
+        lg:  { w: 12, h: 5 },
+        md:  { w: 12, h: 5 },
+        sm:  { w: 12, h: 5 },
+        xs:  { w: 12, h: 7.5 },
+        xxs: { w: 12, h: 13.5 },
       },
     },
   },
@@ -128,6 +131,7 @@ const entities /* : Entity[]*/ = [
     kind: 'Component',
     metadata: {
       name: 'service-a',
+      description: 'Hello, I am service A',
     },
   },
   {
@@ -135,6 +139,23 @@ const entities /* : Entity[]*/ = [
     kind: 'Component',
     metadata: {
       name: 'service-b',
+      description: 'Hello, I am service B',
+    },
+  },
+  {
+    apiVersion: '1',
+    kind: 'Component',
+    metadata: {
+      name: 'service-c',
+      description: 'Hello, I am service C',
+    },
+  },
+  {
+    apiVersion: '1',
+    kind: 'Component',
+    metadata: {
+      name: 'service-d',
+      description: 'Hello, I am service D',
     },
   },
 ];
@@ -147,6 +168,14 @@ const mockCatalogApi: Partial<CatalogApi> = {
   // getEntitiesByRefs(request: GetEntitiesByRefsRequest, options?: CatalogRequestOptions): Promise<GetEntitiesByRefsResponse>
   getEntitiesByRefs: async () => ({
     items: entities,
+  }),
+  queryEntities: async () => ({
+    items: entities,
+    totalItems: entities.length,
+    pageInfo: {
+      nextCursor: undefined,
+      prevCursor: undefined,
+    },
   }),
 };
 
@@ -388,7 +417,7 @@ createDevApp()
       pageTitle: 'SearchBar',
       mountPoints: [
         {
-          Component: SearchBar as React.ComponentType,
+          Component: SearchBar as ComponentType,
           config: {
             // prettier-ignore
             layouts: {
@@ -405,7 +434,7 @@ createDevApp()
           },
         },
         {
-          Component: SearchBar as React.ComponentType,
+          Component: SearchBar as ComponentType,
           config: {
             // prettier-ignore
             layouts: {
@@ -422,7 +451,7 @@ createDevApp()
           },
         },
         {
-          Component: SearchBar as React.ComponentType,
+          Component: SearchBar as ComponentType,
           config: {
             // prettier-ignore
             layouts: {
@@ -447,7 +476,7 @@ createDevApp()
       pageTitle: 'QuickAccessCard',
       mountPoints: [
         {
-          Component: QuickAccessCard as React.ComponentType,
+          Component: QuickAccessCard as ComponentType,
           config: {
             // prettier-ignore
             layouts: {
@@ -461,7 +490,7 @@ createDevApp()
           },
         },
         {
-          Component: QuickAccessCard as React.ComponentType,
+          Component: QuickAccessCard as ComponentType,
           config: {
             // prettier-ignore
             layouts: {
@@ -483,7 +512,7 @@ createDevApp()
       pageTitle: 'Headline',
       mountPoints: [
         {
-          Component: Headline as React.ComponentType,
+          Component: Headline as ComponentType,
           config: {
             // prettier-ignore
             layouts: {
@@ -500,7 +529,7 @@ createDevApp()
           },
         },
         {
-          Component: Headline as React.ComponentType,
+          Component: Headline as ComponentType,
           config: {
             // prettier-ignore
             layouts: {
@@ -518,7 +547,7 @@ createDevApp()
           },
         },
         {
-          Component: Headline as React.ComponentType,
+          Component: Headline as ComponentType,
           config: {
             // prettier-ignore
             layouts: {
@@ -544,7 +573,7 @@ createDevApp()
       pageTitle: 'MarkdownCard',
       mountPoints: [
         {
-          Component: MarkdownCard as React.ComponentType,
+          Component: MarkdownCard as ComponentType,
           config: {
             props: {
               title: 'Markdown example',
@@ -562,7 +591,7 @@ createDevApp()
       pageTitle: 'Markdown',
       mountPoints: [
         {
-          Component: Markdown as React.ComponentType,
+          Component: Markdown as ComponentType,
           config: {
             props: {
               title: 'Markdown example',
@@ -580,7 +609,7 @@ createDevApp()
       pageTitle: 'Placeholder',
       mountPoints: [
         {
-          Component: Placeholder as React.ComponentType,
+          Component: Placeholder as ComponentType,
           config: {
             props: {
               showBorder: true,
@@ -607,7 +636,7 @@ createDevApp()
       pageTitle: 'FeaturedDocsCard',
       mountPoints: [
         {
-          Component: FeaturedDocsCard as React.ComponentType,
+          Component: FeaturedDocsCard as ComponentType,
         },
       ],
     }),
@@ -618,7 +647,7 @@ createDevApp()
       pageTitle: 'RecentlyVisitedCard',
       mountPoints: [
         {
-          Component: RecentlyVisitedCard as React.ComponentType,
+          Component: RecentlyVisitedCard as ComponentType,
         },
       ],
     }),
@@ -629,7 +658,7 @@ createDevApp()
       pageTitle: 'TopVisitedCard',
       mountPoints: [
         {
-          Component: TopVisitedCard as React.ComponentType,
+          Component: TopVisitedCard as ComponentType,
         },
       ],
     }),
@@ -651,7 +680,7 @@ createDevApp()
       pageTitle: 'WorldClock',
       mountPoints: [
         {
-          Component: WorldClock as React.ComponentType,
+          Component: WorldClock as ComponentType,
           config: {
             props: {
               worldClocks: [
@@ -690,7 +719,7 @@ createDevApp()
       pageTitle: 'Layout test 1',
       mountPoints: [
         {
-          Component: Placeholder as React.ComponentType,
+          Component: Placeholder as ComponentType,
           config: {
             // prettier-ignore
             layouts: {
@@ -708,7 +737,7 @@ createDevApp()
           },
         },
         {
-          Component: Placeholder as React.ComponentType,
+          Component: Placeholder as ComponentType,
           config: {
             // prettier-ignore
             layouts: {
@@ -726,7 +755,7 @@ createDevApp()
           },
         },
         {
-          Component: Placeholder as React.ComponentType,
+          Component: Placeholder as ComponentType,
           config: {
             // prettier-ignore
             layouts: {
@@ -752,7 +781,7 @@ createDevApp()
       pageTitle: 'Layout test 2',
       mountPoints: [
         {
-          Component: Placeholder as React.ComponentType,
+          Component: Placeholder as ComponentType,
           config: {
             // prettier-ignore
             layouts: {
@@ -770,7 +799,7 @@ createDevApp()
           },
         },
         {
-          Component: Placeholder as React.ComponentType,
+          Component: Placeholder as ComponentType,
           config: {
             // prettier-ignore
             layouts: {
@@ -788,7 +817,7 @@ createDevApp()
           },
         },
         {
-          Component: Placeholder as React.ComponentType,
+          Component: Placeholder as ComponentType,
           config: {
             // prettier-ignore
             layouts: {
@@ -814,7 +843,7 @@ createDevApp()
       pageTitle: 'Layout test 3',
       mountPoints: [
         {
-          Component: Placeholder as React.ComponentType,
+          Component: Placeholder as ComponentType,
           config: {
             // prettier-ignore
             layouts: {
@@ -832,7 +861,7 @@ createDevApp()
           },
         },
         {
-          Component: Placeholder as React.ComponentType,
+          Component: Placeholder as ComponentType,
           config: {
             // prettier-ignore
             layouts: {
@@ -850,7 +879,7 @@ createDevApp()
           },
         },
         {
-          Component: Placeholder as React.ComponentType,
+          Component: Placeholder as ComponentType,
           config: {
             // prettier-ignore
             layouts: {

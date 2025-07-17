@@ -11,7 +11,7 @@ jobs:
     if: github.actor == 'renovate[bot]' && github.repository == 'redhat-developer/rhdh-plugins'
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e # v2.10.4
+        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
         with:
           egress-policy: audit
 
@@ -23,7 +23,7 @@ jobs:
           token: ${{ secrets.RHDH_BOT_TOKEN }}
 
       - name: Set up Node
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org/ # Needed for auth

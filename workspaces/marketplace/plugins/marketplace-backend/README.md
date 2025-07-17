@@ -21,10 +21,23 @@ backend.add(
 );
 ```
 
+### Plugin Configurations
+
+Add the following extensions configuration in your `app-config.yaml` file:
+
+```yaml
+extensions:
+  ### Example for how to enable installation to a file.
+  installation:
+    enabled: true
+    saveToSingleFile:
+      file: <path-to>/dynamic-plugins.yaml
+```
+
 ## Development
 
 This plugin backend can be started in a standalone mode from directly in this
 package with `yarn start`. It is a limited setup that is most convenient when
 developing the plugin backend itself.
 
-If you want to run the entire project, including the frontend, run `yarn dev` from the root directory.
+If you want to run the entire project, including the frontend, run `yarn start` from the root directory.

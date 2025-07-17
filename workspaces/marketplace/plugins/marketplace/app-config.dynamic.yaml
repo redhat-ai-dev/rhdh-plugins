@@ -5,11 +5,13 @@ dynamicPlugins:
         - name: marketplace
           importName: MarketplaceIcon
       dynamicRoutes:
-        - path: /marketplace
-          importName: MarketplacePage
-          menuItem:
-            icon: marketplace
-            text: Marketplace
+        - path: /extensions/catalog
+          importName: DynamicMarketplacePluginRouter
       mountPoints:
-        - mountPoint: admin.page.plugins/cards
-          importName: MarketplaceCatalogContent
+        - mountPoint: application/provider
+          importName: InstallationContextProvider
+        - mountPoint: internal.plugins/tab
+          importName: DynamicMarketplacePluginContent
+          config:
+            path: extensions
+            title: Catalog

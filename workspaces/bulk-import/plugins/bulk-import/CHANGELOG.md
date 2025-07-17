@@ -1,5 +1,94 @@
 ### Dependencies
 
+## 1.13.3
+
+### Patch Changes
+
+- 22e947b: Bump to backstage version 1.39.1
+- e03293e: Updated dependency `@playwright/test` to `1.53.1`.
+- Updated dependencies [22e947b]
+  - @red-hat-developer-hub/backstage-plugin-bulk-import-common@1.7.1
+
+## 1.13.2
+
+### Patch Changes
+
+- bb1ba58: removed all janus-idp/shared-react dependencies
+- 002f7c9: Updated dependency `@testing-library/user-event` to `14.6.1`.
+- 8c2e067: Updated dependency `openapicmd` to `2.7.0`.
+  Updated dependency `@mui/styles` to `5.17.1`.
+  Updated dependency `@playwright/test` to `1.52.0`.
+- 37e6364: Updated dependency `@playwright/test` to `1.53.0`.
+- e99da2b: Improve Bulk Import UI performance by optimizing API call behavior:
+  - Prevent unnecessary API calls when switching between **Organizations** and **Repositories** tabs.
+  - Avoid redundant calls when clicking on pagination controls without changing page or page size.
+  - Suppress extraneous API requests triggered by random screen clicks.
+  - Introduce **debouncing** to the search input to reduce network load during fast typing.
+
+  These changes reduce client-side overhead and improve the responsiveness of the Bulk Import page.
+
+- d7a0dd1: Aligned eslint-rules as per other plugins.
+
+## 1.13.1
+
+### Patch Changes
+
+- bcb78bc: fix generic error when pr creation fails
+
+## 1.13.0
+
+### Minor Changes
+
+- 361daf4: Backstage version bump to v1.38.1
+
+### Patch Changes
+
+- a9e5f32: Updated dependency `@openapitools/openapi-generator-cli` to `2.20.0`.
+  Updated dependency `prettier` to `3.5.3`.
+  Updated dependency `@redhat-developer/red-hat-developer-hub-theme` to `0.5.1`.
+  Updated dependency `@red-hat-developer-hub/backstage-plugin-theme` to `^0.6.0`.
+  Updated dependency `@janus-idp/cli` to `3.5.0`.
+- Updated dependencies [a9e5f32]
+- Updated dependencies [361daf4]
+  - @red-hat-developer-hub/backstage-plugin-bulk-import-common@1.7.0
+
+## 1.12.1
+
+### Patch Changes
+
+- d5cc14d: added MUI class generator
+
+## 1.12.0
+
+### Minor Changes
+
+- 95b14e6: Backstage version bump to v1.36.1
+
+### Patch Changes
+
+- 4a1f79b: fixing extra apis call on added repository list
+- 680ede5: Updated dependency `@mui/icons-material` to `5.16.14`.
+  Updated dependency `@mui/styles` to `5.16.14`.
+  Updated dependency `@mui/material` to `5.16.14`.
+  Updated dependency `@mui/styled-engine` to `5.16.14`.
+- Updated dependencies [95b14e6]
+  - @red-hat-developer-hub/backstage-plugin-bulk-import-common@1.6.0
+
+## 1.11.0
+
+### Minor Changes
+
+- fbbd37f: Backstage version bump to v1.35.0
+
+### Patch Changes
+
+- 28769f6: Update Readme to point to right link
+- a87d02d: Updated dependency `start-server-and-test` to `2.0.10`.
+  Updated dependency `sass` to `1.83.4`.
+  Updated dependency `ts-loader` to `9.5.2`.
+- Updated dependencies [fbbd37f]
+  - @red-hat-developer-hub/backstage-plugin-bulk-import-common@1.5.0
+
 ## 1.10.8
 
 ### Patch Changes

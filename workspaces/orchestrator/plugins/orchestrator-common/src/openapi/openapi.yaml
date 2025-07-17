@@ -110,6 +110,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /v2/workflows/{workflowId}/pingWorkflowService:
+    get:
+      operationId: pingWorkflowServiceById
+      description: Returns true if the workflow service is up for the given workflow ID.
+      parameters:
+        - name: workflowId
+          in: path
+          description: ID of the workflow to fetch
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '500':
+          description: Error pinging workflow service by id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /v2/workflows/instances:
     post:
       operationId: getInstances
@@ -179,20 +203,13 @@ paths:
           description: ID of the workflow instance
           schema:
             type: string
-        - name: includeAssessment
-          in: query
-          required: false
-          description: Whether to include assessment
-          schema:
-            type: boolean
-            default: false
       responses:
         '200':
           description: Successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AssessedProcessInstanceDTO'
+                $ref: '#/components/schemas/ProcessInstanceDTO'
         '500':
           description: Error fetching instance
           content:
@@ -229,12 +246,6 @@ paths:
           in: path
           description: ID of the workflow to execute
           required: true
-          schema:
-            type: string
-        - name: businessKey
-          in: query
-          description: ID of the parent workflow
-          required: false
           schema:
             type: string
       requestBody:
@@ -370,10 +381,10 @@ components:
           minimum: 0
         lastRunStatus:
           $ref: '#/components/schemas/ProcessInstanceStatusDTO'
-        category:
-          $ref: '#/components/schemas/WorkflowCategoryDTO'
         description:
           type: string
+        isAvailable:
+          type: boolean
       required:
         - workflowId
         - format
@@ -397,12 +408,6 @@ components:
       enum:
         - yaml
         - json
-    WorkflowCategoryDTO:
-      type: string
-      description: Category of the workflow
-      enum:
-        - assessment
-        - infrastructure
     WorkflowListResultDTO:
       type: object
       properties:
@@ -428,8 +433,6 @@ components:
           minLength: 1
         format:
           $ref: '#/components/schemas/WorkflowFormatDTO'
-        category:
-          $ref: '#/components/schemas/WorkflowCategoryDTO'
         description:
           type: string
           description: Description of the workflow
@@ -439,7 +442,6 @@ components:
             type: string
       required:
         - id
-        - category
         - format
     ProcessInstanceListResultDTO:
       type: object
@@ -450,15 +452,6 @@ components:
             $ref: '#/components/schemas/ProcessInstanceDTO'
         paginationInfo:
           $ref: '#/components/schemas/PaginationInfoDTO'
-    AssessedProcessInstanceDTO:
-      type: object
-      properties:
-        instance:
-          $ref: '#/components/schemas/ProcessInstanceDTO'
-        assessedBy:
-          $ref: '#/components/schemas/ProcessInstanceDTO'
-      required:
-        - instance
     ProcessInstanceDTO:
       type: object
       properties:
@@ -480,14 +473,16 @@ components:
           type: string
         duration:
           type: string
-        category:
-          $ref: '#/components/schemas/WorkflowCategoryDTO'
         description:
           type: string
         workflowdata:
           $ref: '#/components/schemas/WorkflowDataDTO'
-        businessKey:
+        initiatorEntity:
           type: string
+        executionSummary:
+          type: array
+          items:
+            type: string
         nodes:
           type: array
           items:
@@ -509,12 +504,6 @@ components:
       description: Result of a workflow execution
       type: object
       properties:
-        completedWith:
-          description: The state of workflow completion.
-          type: string
-          enum:
-            - error
-            - success
         message:
           description: High-level summary of the current status, free-form text, human readable.
           type: string
@@ -579,6 +568,25 @@ components:
         inputData:
           type: object
           additionalProperties: true
+        authTokens:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuthToken'
+          minItems: 0
+          additionalProperties: true
+    AuthToken:
+      type: object
+      properties:
+        provider:
+          description: The auth token provider name
+          type: string
+        token:
+          description: The auth token itself retrieved from the above specified provider name
+          type: string
+      required:
+        - provider
+        - token
+      additionalProperties: false
     ExecuteWorkflowResponseDTO:
       type: object
       properties:
@@ -651,6 +659,19 @@ components:
       oneOf:
         - $ref: '#/components/schemas/LogicalFilter'
         - $ref: '#/components/schemas/FieldFilter'
+        - $ref: '#/components/schemas/NestedFilter'
+    NestedFilter:
+      type: object
+      required:
+        - field
+        - nested
+      properties:
+        field:
+          type: string
+        nested:
+          oneOf:
+            - $ref: '#/components/schemas/FieldFilter'
+            - $ref: '#/components/schemas/NestedFilter'
     LogicalFilter:
       type: object
       required:

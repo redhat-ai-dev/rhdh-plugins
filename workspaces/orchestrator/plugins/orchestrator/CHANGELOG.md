@@ -1,5 +1,189 @@
 ### Dependencies
 
+## 3.1.4
+
+### Patch Changes
+
+- ff0f69e: update API - fetch executionSummary field
+  Use execution summary for results card
+- Updated dependencies [ff0f69e]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.28.4
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-form-api@1.6.4
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-form-react@1.6.4
+
+## 3.1.3
+
+### Patch Changes
+
+- Updated dependencies [a3df181]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.28.3
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-form-api@1.6.3
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-form-react@1.6.3
+
+## 3.1.2
+
+### Patch Changes
+
+- Updated dependencies [da78550]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.28.2
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-form-api@1.6.2
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-form-react@1.6.2
+
+## 3.1.1
+
+### Patch Changes
+
+- 3dda068: fix CSS bugs for variables dialog and input schema dialog
+- a9a6095: removing business key
+- a9ab22e: fix search and filter for "running" and "failed"
+- 18bda47: capitalize "Orchestrator" in path
+- Updated dependencies [a9a6095]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.28.1
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-form-api@1.6.1
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-form-react@1.6.1
+
+## 3.1.0
+
+### Minor Changes
+
+- 53f3ffb: implemented authorization widget for enabling specifying the required auth providers in the schema so the UI can pick it up from there and forward to workflow execution
+
+### Patch Changes
+
+- e337a39: fix isDarkMode to work in auto mode
+- b6bfdb7: Updated dependency `@red-hat-developer-hub/backstage-plugin-theme` to `^0.9.0`.
+- ce61d0a: "fix(orchestrator):remove workflow input editor"
+- Updated dependencies [53f3ffb]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-form-react@1.6.0
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-form-api@1.6.0
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.28.0
+
+## 3.0.4
+
+### Patch Changes
+
+- c02b521: match package versions with RHDH
+- e5af42b: Use Code Snippet default colors in input schema dialog
+- 1cf9f22: Use CodeSnippet default colors
+
+## 3.0.3
+
+### Patch Changes
+
+- dc01428: enable retrigger
+- 3b571b3: Updated dependency `@janus-idp/cli` to `3.6.1`.
+- 95c8073: Updated dependency `@red-hat-developer-hub/backstage-plugin-theme` to `^0.8.0`.
+- Updated dependencies [4ecd9f0]
+- Updated dependencies [9bc8af0]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.27.3
+
+## 3.0.2
+
+### Patch Changes
+
+- Updated dependencies [c6b54ad]
+- Updated dependencies [7f6ca8a]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.27.2
+
+## 3.0.1
+
+### Patch Changes
+
+- 56c160b: Add endpoind to ping workflow service
+- Updated dependencies [56c160b]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.27.1
+
+## 3.0.0
+
+### Major Changes
+
+- ff929e2: feat(orchestrator): capturing the auth tokens from available SCM systems after user logsIn and then send it to backend-plugin.
+
+### Minor Changes
+
+- 78e3ee6: Added backstage-plugin-orchestrator-form-widgets plugin hosting default set of RJSF form widgets provided along the Orchestrator. Includes the SchemaUpdater widget capable of downloading JSON schema chunks and modifying the RJSF form on the fly.
+- fc9ce7c: Backstage version bump to v1.37.1
+
+### Patch Changes
+
+- 54c33db: change breadcrumbs titles
+- 5214a15: Dev change only - use @janus-idp/cli 3.2.0 instead of 3.5.0
+- 3ac726f: add workflow status (available/unavailable)
+- 535f787: Add option to view input schema from workflows table
+- 7ebb7e1: fix bug in workflowResult - values
+- a6a0262: Fix Results card to render boolean values correctly.
+- 2ab77e3: run again button text is running while workflow is running
+- 2f33284: Update kie-tools, @janus/cli and Backstage supported version to the most recent ones.
+- a9e5f32: Updated dependency `@openapitools/openapi-generator-cli` to `2.20.0`.
+  Updated dependency `prettier` to `3.5.3`.
+  Updated dependency `@redhat-developer/red-hat-developer-hub-theme` to `0.5.1`.
+  Updated dependency `@red-hat-developer-hub/backstage-plugin-theme` to `^0.6.0`.
+  Updated dependency `@janus-idp/cli` to `3.5.0`.
+- 4842b37: Add status icons
+- 438e3aa: Add aborted as a result to WorkflowResult
+- 567adeb: fix use of 'xs' in grid.item
+- 6eecbea: replace sonataflow editor with serverless-workflow-standalone-editor
+- 04ca7f3: Add Workflow Status to WorkflowsTable
+- Updated dependencies [78e3ee6]
+- Updated dependencies [2f33284]
+- Updated dependencies [a9e5f32]
+- Updated dependencies [fc9ce7c]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-form-react@1.5.0
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-form-api@1.5.0
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.27.0
+
+## 2.6.3
+
+### Patch Changes
+
+- c64c3a5: fix view variables screen
+- 28c900b: fixing responsiveness of the WorkflowPage
+- Updated dependencies [691fd23]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.26.2
+
+## 2.6.2
+
+### Patch Changes
+
+- 78411e8: fix compile issue
+- ec0400b: Disable abort when workflow execution does not exist
+- 4b77c55: If a workflow is Completed but the DataIndex reports an error message anyway, the message is rendered as a warning to reduce user's confusion.
+- 3422e48: Add LoginAsAdmin readme file
+- 6ae40d9: implement filters
+- Updated dependencies [29cf5fb]
+- Updated dependencies [754a051]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.26.1
+
+## 2.6.1
+
+### Patch Changes
+
+- 4f0a326: [rc9] MTA displays two statuses in results when failing with error
+- 7032c17: Update the workflow details screen to match the latest Figma design
+- dcfe477: [UI] Empty values section in Results pane should not be rendered
+
+## 2.6.0
+
+### Minor Changes
+
+- 541d33d: Rearranging Workflow instance page to unify formatting and better visibility of results.
+
+### Patch Changes
+
+- 00f0cea: Improve abort
+- cda86f1: improve details in workflow instance page details card
+- bff51b6: Update Orchestrator icon - plugin
+- 1e498d8: improve results card in workflow instance page
+- 868b6d8: add "view variables" dialog
+- fb5aafd: Standardise the page loading animation
+- Updated dependencies [967c377]
+- Updated dependencies [05a1ce0]
+- Updated dependencies [816d8bc]
+- Updated dependencies [c7de094]
+- Updated dependencies [bee24dc]
+- Updated dependencies [d4fa6bf]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.26.0
+
 ## 2.5.1
 
 ### Patch Changes

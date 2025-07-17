@@ -4,45 +4,216 @@
 
 ```ts
 import { BackstagePlugin } from '@backstage/core-plugin-api';
-import { default as React_2 } from 'react';
+import type { ComponentType } from 'react';
+import { CSSProperties } from 'react';
+import { JSX as JSX_2 } from 'react/jsx-runtime';
+import { MenuItemProps } from '@mui/material/MenuItem';
 
 // @public
-export interface CreateButtonProps {
-  // (undocumented)
-  anchorEl: HTMLElement | null;
-  // (undocumented)
-  handleMenu: (event: React_2.MouseEvent<HTMLElement>) => void;
-  // (undocumented)
-  setAnchorEl: React_2.Dispatch<React_2.SetStateAction<HTMLElement | null>>;
+export const ApplicationLauncherDropdown: () => JSX_2.Element;
+
+// @public
+export const CompanyLogo: ({
+  logo,
+  width,
+  height,
+  to,
+}: CompanyLogoProps) => JSX_2.Element;
+
+// @public (undocumented)
+export interface CompanyLogoProps {
+  height?: string | number;
+  layout?: CSSProperties;
+  logo?: LogoURLs;
+  to?: string;
+  width?: string | number;
 }
 
 // @public
-export const CreateDropdown: React_2.ComponentType<CreateButtonProps>;
+export const CreateDropdown: ComponentType<CreateDropdownProps>;
 
 // @public
-export const GlobalHeader: () => React_2.JSX.Element;
+export interface CreateDropdownProps {
+  // (undocumented)
+  layout?: CSSProperties;
+}
+
+// @public
+export const defaultGlobalHeaderComponentsMountPoints: GlobalHeaderComponentMountPoint[];
+
+// @public (undocumented)
+export const Divider: ({ layout }: DividerProps) => JSX_2.Element;
+
+// @public (undocumented)
+export interface DividerProps {
+  // (undocumented)
+  layout?: CSSProperties;
+}
+
+// @public
+export const GlobalHeader: () => JSX_2.Element;
+
+// @public
+export const GlobalHeaderComponent: ComponentType<GlobalHeaderComponentProps>;
+
+// @public
+export interface GlobalHeaderComponentMountPoint {
+  // (undocumented)
+  Component: ComponentType<{
+    layout?: CSSProperties;
+  }>;
+  // (undocumented)
+  config?: GlobalHeaderComponentMountPointConfig & {
+    props?: Record<string, any>;
+    layout?: CSSProperties;
+  };
+}
+
+// @public
+export interface GlobalHeaderComponentMountPointConfig {
+  // (undocumented)
+  priority?: number;
+}
+
+// @public
+export interface GlobalHeaderComponentProps {
+  // (undocumented)
+  globalHeaderMountPoints: GlobalHeaderComponentMountPoint[];
+}
 
 // @public
 export const globalHeaderPlugin: BackstagePlugin<{}, {}, {}>;
 
-// @public
-export const HeaderIconButton: React_2.ComponentType<HeaderIconButtonProps>;
+// @public (undocumented)
+export const HeaderButton: ({
+  title,
+  tooltip,
+  color,
+  size,
+  variant,
+  ariaLabel,
+  startIcon,
+  endIcon,
+  externalLinkIcon,
+  to,
+  layout,
+}: HeaderButtonProps) => JSX_2.Element;
 
-// @public
+// @public (undocumented)
+export interface HeaderButtonProps {
+  // (undocumented)
+  ariaLabel?: string;
+  // (undocumented)
+  color?: 'inherit' | 'primary' | 'secondary' | 'default';
+  // (undocumented)
+  endIcon?: string;
+  // (undocumented)
+  externalLinkIcon?: boolean;
+  // (undocumented)
+  layout?: CSSProperties;
+  // (undocumented)
+  size?: 'small' | 'medium' | 'large';
+  // (undocumented)
+  startIcon?: string;
+  // (undocumented)
+  title: string;
+  // (undocumented)
+  to: string;
+  // (undocumented)
+  tooltip?: string;
+  // (undocumented)
+  variant?: 'text' | 'outlined' | 'contained';
+}
+
+// @public (undocumented)
+export const HeaderIcon: ({
+  icon,
+  size,
+  layout,
+}: HeaderIconProps) => JSX_2.Element | null;
+
+// @public (undocumented)
+export const HeaderIconButton: ({
+  title,
+  icon,
+  tooltip,
+  color,
+  size,
+  ariaLabel,
+  to,
+  layout,
+}: HeaderIconButtonProps) => JSX_2.Element;
+
+// @public (undocumented)
 export interface HeaderIconButtonProps {
+  // (undocumented)
+  ariaLabel?: string;
+  // (undocumented)
+  color?: 'inherit' | 'primary' | 'secondary' | 'default';
   // (undocumented)
   icon: string;
   // (undocumented)
-  to?: string;
+  layout?: CSSProperties;
+  // (undocumented)
+  size?: 'small' | 'medium' | 'large';
+  // (undocumented)
+  title: string;
+  // (undocumented)
+  to: string;
   // (undocumented)
   tooltip?: string;
 }
 
-// @public
-export const HeaderLink: React_2.ComponentType<HeaderLinkProps>;
+// @public (undocumented)
+export interface HeaderIconProps {
+  // (undocumented)
+  icon: string;
+  // (undocumented)
+  layout?: CSSProperties;
+  // (undocumented)
+  size?: 'small' | 'medium' | 'large';
+}
 
 // @public
-export interface HeaderLinkProps {
+export const HelpDropdown: ComponentType<HelpDropdownProps>;
+
+// @public
+export interface HelpDropdownProps {
+  // (undocumented)
+  layout?: CSSProperties;
+}
+
+// @public
+export type LogoURLs =
+  | {
+      light: string;
+      dark: string;
+    }
+  | string
+  | undefined;
+
+// @public
+export const LogoutButton: ComponentType;
+
+// @public
+export interface MenuItemConfig {
+  // (undocumented)
+  Component: ComponentType<MenuItemLinkProps | MenuItemProps | {}>;
+  // (undocumented)
+  icon?: string;
+  // (undocumented)
+  label: string;
+  // (undocumented)
+  link?: string;
+  // (undocumented)
+  subLabel?: string;
+}
+
+// @public
+export const MenuItemLink: ComponentType<MenuItemLinkProps>;
+
+// @public
+export interface MenuItemLinkProps {
   // (undocumented)
   icon?: string;
   // (undocumented)
@@ -56,28 +227,9 @@ export interface HeaderLinkProps {
 }
 
 // @public
-export const LogoutButton: React_2.ComponentType;
-
-// @public
-export interface MenuItemConfig {
-  // (undocumented)
-  Component: React_2.ComponentType<HeaderLinkProps | {}>;
-  // (undocumented)
-  icon?: string;
-  // (undocumented)
-  label: string;
-  // (undocumented)
-  link?: string;
-  // (undocumented)
-  subLabel?: string;
-  // (undocumented)
-  type: string;
-}
-
-// @public
 export const NotificationBanner: (
   props: NotificationBannerProps,
-) => React_2.JSX.Element | null;
+) => JSX_2.Element | null;
 
 // @public (undocumented)
 export type NotificationBannerDismiss = 'none' | 'session' | 'localstorage';
@@ -87,13 +239,15 @@ export interface NotificationBannerProps {
   // (undocumented)
   backgroundColor?: string;
   // (undocumented)
-  border?: string;
-  // (undocumented)
-  borderRadius?: string;
+  borderColor?: string;
   // (undocumented)
   dismiss?: NotificationBannerDismiss;
   // (undocumented)
+  icon?: string;
+  // (undocumented)
   id?: string;
+  // (undocumented)
+  layout?: CSSProperties;
   // (undocumented)
   markdown?: boolean;
   // (undocumented)
@@ -102,21 +256,61 @@ export interface NotificationBannerProps {
   title: string;
 }
 
+// @public (undocumented)
+export const NotificationButton: ({
+  title,
+  tooltip,
+  color,
+  size,
+  badgeColor,
+  to,
+  layout,
+}: NotificationButtonProps) => JSX_2.Element | null;
+
+// @public (undocumented)
+export interface NotificationButtonProps {
+  // (undocumented)
+  badgeColor?:
+    | 'primary'
+    | 'secondary'
+    | 'default'
+    | 'error'
+    | 'info'
+    | 'success'
+    | 'warning';
+  // (undocumented)
+  color?:
+    | 'inherit'
+    | 'default'
+    | 'primary'
+    | 'secondary'
+    | 'error'
+    | 'info'
+    | 'success'
+    | 'warning';
+  // (undocumented)
+  layout?: CSSProperties;
+  // (undocumented)
+  size?: 'small' | 'medium' | 'large';
+  // (undocumented)
+  title?: string;
+  // (undocumented)
+  to?: string;
+  // (undocumented)
+  tooltip?: string;
+}
+
 // @public
-export const ProfileDropdown: React_2.ComponentType<ProfileDropdownProps>;
+export const ProfileDropdown: ComponentType<ProfileDropdownProps>;
 
 // @public
 export interface ProfileDropdownProps {
   // (undocumented)
-  anchorEl: HTMLElement | null;
-  // (undocumented)
-  handleMenu: (event: React_2.MouseEvent<HTMLElement>) => void;
-  // (undocumented)
-  setAnchorEl: React_2.Dispatch<React_2.SetStateAction<HTMLElement | null>>;
+  layout?: CSSProperties;
 }
 
 // @public
-export const RegisterAComponentSection: React_2.ComponentType<RegisterAComponentSectionProps>;
+export const RegisterAComponentSection: ComponentType<RegisterAComponentSectionProps>;
 
 // @public
 export type RegisterAComponentSectionProps = {
@@ -125,17 +319,55 @@ export type RegisterAComponentSectionProps = {
 };
 
 // @public
-export const SearchComponent: React_2.ComponentType;
+export const SearchComponent: ComponentType;
 
 // @public
-export const SoftwareTemplatesSection: React_2.ComponentType<SoftwareTemplatesSectionProps>;
+export const SoftwareTemplatesSection: ComponentType<SoftwareTemplatesSectionProps>;
 
 // @public
 export type SoftwareTemplatesSectionProps = {
-  items: MenuItemConfig[];
   handleClose: () => void;
   hideDivider?: boolean;
 };
+
+// @public
+export const Spacer: ({
+  growFactor,
+  minWidth,
+  layout,
+}: SpacerProps) => JSX_2.Element;
+
+// @public (undocumented)
+export interface SpacerProps {
+  // (undocumented)
+  growFactor?: number;
+  // (undocumented)
+  layout?: CSSProperties;
+  // (undocumented)
+  minWidth?: number | string;
+}
+
+// @public
+export const StarredDropdown: () => JSX_2.Element;
+
+// @public (undocumented)
+export const SupportButton: ComponentType<SupportButtonProps>;
+
+// @public (undocumented)
+export interface SupportButtonProps {
+  // (undocumented)
+  icon?: string;
+  // (undocumented)
+  onClick?: () => void;
+  // (undocumented)
+  style?: CSSProperties;
+  // (undocumented)
+  title?: string;
+  // (undocumented)
+  to?: string;
+  // (undocumented)
+  tooltip?: string;
+}
 
 // (No @packageDocumentation comment for this package)
 ```

@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
+import type { MouseEvent } from 'react';
+import { useEffect, useState } from 'react';
 
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
-import { makeStyles } from '@mui/styles';
 import { useFormikContext } from 'formik';
 
 import {
@@ -30,38 +30,29 @@ import {
 } from '../../types';
 import { RepositoriesSearchBar } from './RepositoriesSearchBar';
 
-const useStyles = makeStyles(() => ({
-  toolbar: {
-    paddingTop: '14px',
-    paddingBottom: '14px',
-  },
-}));
-
 export const AddRepositoriesTableToolbar = ({
   title,
   setSearchString,
   onPageChange,
   activeOrganization,
   selectedReposFromDrawer,
+  isApprovalToolGitlab,
 }: {
   title: string;
   setSearchString: (str: string) => void;
   onPageChange?: (page: number) => void;
   activeOrganization?: string;
   selectedReposFromDrawer?: AddedRepositories;
+  isApprovalToolGitlab?: boolean;
 }) => {
   const { setFieldValue, values } =
     useFormikContext<AddRepositoriesFormValues>();
-  const [selection, setSelection] = React.useState<string>(
+  const [selection, setSelection] = useState<string>(
     RepositorySelection.Repository,
   );
-  const [search, setSearch] = React.useState<string>('');
-  const classes = useStyles();
-  const [selectedReposNumber, setSelectedReposNumber] = React.useState(0);
-  const handleToggle = (
-    _event: React.MouseEvent<HTMLElement>,
-    type: string,
-  ) => {
+  const [search, setSearch] = useState<string>('');
+  const [selectedReposNumber, setSelectedReposNumber] = useState(0);
+  const handleToggle = (_event: MouseEvent<HTMLElement>, type: string) => {
     if (type && onPageChange) {
       setSelection(type);
       setFieldValue('repositoryType', type);
@@ -76,7 +67,7 @@ export const AddRepositoriesTableToolbar = ({
     setSearch(filter);
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (activeOrganization && selectedReposFromDrawer) {
       const thisSelectedReposCount = Object.values(
         selectedReposFromDrawer,
@@ -90,7 +81,12 @@ export const AddRepositoriesTableToolbar = ({
   }, [selectedReposFromDrawer, values.repositories, activeOrganization]);
 
   return (
-    <Toolbar className={classes.toolbar}>
+    <Toolbar
+      sx={{
+        paddingTop: '14px',
+        paddingBottom: '14px',
+      }}
+    >
       <Typography
         sx={{ flex: '1 1 100%', fontWeight: 'bold' }}
         variant="h5"
@@ -100,7 +96,6 @@ export const AddRepositoriesTableToolbar = ({
       </Typography>
       {!activeOrganization && (
         <ToggleButtonGroup
-          size="medium"
           color="primary"
           value={selection}
           exclusive
@@ -110,14 +105,16 @@ export const AddRepositoriesTableToolbar = ({
           <ToggleButton
             value={RepositorySelection.Repository}
             data-testid="repository-view"
+            sx={{ minWidth: '120px' }}
           >
-            Repository
+            {isApprovalToolGitlab ? 'Project' : 'Repository'}
           </ToggleButton>
           <ToggleButton
             value={RepositorySelection.Organization}
             data-testid="organization-view"
+            sx={{ minWidth: '120px' }}
           >
-            Organization
+            {isApprovalToolGitlab ? 'Group' : 'Organization'}
           </ToggleButton>
         </ToggleButtonGroup>
       )}

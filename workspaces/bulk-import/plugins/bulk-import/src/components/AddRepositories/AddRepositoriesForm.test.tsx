@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-import React from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 
 import { configApiRef, identityApiRef } from '@backstage/core-plugin-api';
 import { MockConfigApi, TestApiProvider } from '@backstage/test-utils';
 
-import { useDrawer } from '@janus-idp/shared-react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { useFormikContext } from 'formik';
@@ -32,6 +30,7 @@ import {
   OrgAndRepoResponse,
   RepositorySelection,
 } from '../../types';
+import { useDrawer } from '../DrawerContext';
 import { AddRepositories } from './AddRepositories';
 
 jest.mock('formik', () => ({
@@ -48,8 +47,8 @@ jest.mock('./AddRepositoriesForm', () => ({
   }),
 }));
 
-jest.mock('@janus-idp/shared-react', () => ({
-  ...jest.requireActual('@janus-idp/shared-react'),
+jest.mock('../DrawerContext', () => ({
+  ...jest.requireActual('../DrawerContext'),
   useDrawer: jest.fn(),
 }));
 

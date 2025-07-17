@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-import React from 'react';
-import Alert from '@mui/material/Alert';
+import { useState, useMemo } from 'react';
+import type { CSSProperties } from 'react';
+
 import { MarkdownContent } from '@backstage/core-components';
 
-// export type NotificationBannerColor = 'success' | 'info' | 'warning' | 'error';
-// export type NotificationBannerIcon = 'success' | 'info' | 'warning' | 'error';
-// export type NotificationBannerVariant = 'standard' | 'filled' | 'outlined';
+import Alert from '@mui/material/Alert';
+
+import { HeaderIcon } from './HeaderIcon/HeaderIcon';
 
 /**
  * @public
@@ -34,21 +35,18 @@ export interface NotificationBannerProps {
   id?: string;
   title: string;
   markdown?: boolean;
+  icon?: string;
 
   textColor?: string;
   backgroundColor?: string;
-  border?: string;
-  borderRadius?: string;
-
-  // color?: NotificationBannerColor;
-  // icon?: NotificationBannerIcon;
-  // variant?: NotificationBannerVariant;
+  borderColor?: string;
+  layout?: CSSProperties;
 
   dismiss?: NotificationBannerDismiss;
 }
 
 export const NotificationBanner = (props: NotificationBannerProps) => {
-  const [dismissed, setDismissed] = React.useState<boolean>(() => {
+  const [dismissed, setDismissed] = useState<boolean>(() => {
     if (props.dismiss === 'localstorage') {
       try {
         const dismissedString =
@@ -64,7 +62,7 @@ export const NotificationBanner = (props: NotificationBannerProps) => {
     }
   });
 
-  const onClose = React.useMemo<(() => void) | undefined>(() => {
+  const onClose = useMemo<(() => void) | undefined>(() => {
     if (!props.dismiss || props.dismiss === 'none') {
       return undefined;
     } else if (props.dismiss === 'session') {
@@ -99,18 +97,19 @@ export const NotificationBanner = (props: NotificationBannerProps) => {
 
   return (
     <Alert
-      // color={props.color}
-      // severity={props.icon}
-      icon={false}
-      // variant={props.variant}
+      color="warning"
+      icon={props.icon ? <HeaderIcon icon={props.icon} /> : false}
       onClose={onClose}
       sx={{
-        color: props.textColor ?? 'text.primary',
-        backgroundColor: props.backgroundColor ?? 'background.paper',
-        border: props.border,
-        borderRadius: props.borderRadius,
+        color: props.textColor,
+        backgroundColor: props.backgroundColor,
+        borderColor: props.borderColor,
+        borderStyle: 'solid',
+        borderWidth: 2,
+        borderRadius: 0,
         justifyContent: 'center',
         textAlign: 'center',
+        ...props.layout,
       }}
     >
       {props.markdown ? (

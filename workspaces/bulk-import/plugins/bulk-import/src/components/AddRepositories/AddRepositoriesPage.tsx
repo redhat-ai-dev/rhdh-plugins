@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React from 'react';
+import { useRef } from 'react';
 
 import { Content, Header, Page, Progress } from '@backstage/core-components';
 import { usePermission } from '@backstage/plugin-permission-react';
@@ -27,27 +27,17 @@ import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
 import { useTheme } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
-import { makeStyles } from '@mui/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { bulkImportPermission } from '@red-hat-developer-hub/backstage-plugin-bulk-import-common';
 
+import { gitlabFeatureFlag } from '../../utils/repository-utils';
 import { AddRepositoriesForm } from './AddRepositoriesForm';
 import { Illustrations } from './Illustrations';
 
-const useStyles = makeStyles(() => ({
-  accordionDetails: {
-    flexDirection: 'row',
-    display: 'flex',
-    justifyContent: 'space-around',
-    overflow: 'auto',
-  },
-}));
-
 export const AddRepositoriesPage = () => {
-  const queryClientRef = React.useRef<QueryClient>();
+  const queryClientRef = useRef<QueryClient>();
   const theme = useTheme();
-  const classes = useStyles();
 
   if (!queryClientRef.current) {
     queryClientRef.current = new QueryClient();
@@ -72,25 +62,40 @@ export const AddRepositoriesPage = () => {
                 id="add-repository-summary"
               >
                 <Typography variant="h5">
-                  Add repositories to Red Hat Developer Hub in 4 steps
+                  {gitlabFeatureFlag
+                    ? 'Import to Red Hat Developer Hub'
+                    : 'Add repositories to Red Hat Developer Hub in 4 steps'}
                 </Typography>
               </AccordionSummary>
-              <AccordionDetails className={classes.accordionDetails}>
-                {/* <Illustrations
-                iconClassname={
-                  theme.palette.mode === 'dark'
-                    ? 'icon-approval-tool-white'
-                    : 'icon-approval-tool-black'
-                }
-                iconText="Choose approval tool (git/ServiceNow) for PR/ticket creation"
-              /> */}
+              <AccordionDetails
+                sx={{
+                  flexDirection: 'row',
+                  display: 'flex',
+                  justifyContent: 'space-around',
+                  overflow: 'auto',
+                }}
+              >
+                {gitlabFeatureFlag && (
+                  <Illustrations
+                    iconClassname={
+                      theme.palette.mode === 'dark'
+                        ? 'icon-approval-tool-white'
+                        : 'icon-approval-tool-black'
+                    }
+                    iconText="Choose approval tool (GitHub/GitLab) for PR creation"
+                  />
+                )}
                 <Illustrations
                   iconClassname={
                     theme.palette.mode === 'dark'
                       ? 'icon-choose-repositories-white'
                       : 'icon-choose-repositories-black'
                   }
-                  iconText="Choose repositories you want to add"
+                  iconText={
+                    gitlabFeatureFlag
+                      ? 'Choose which items you want to import'
+                      : 'Choose repositories you want to add'
+                  }
                 />
                 <Illustrations
                   iconClassname={
@@ -98,7 +103,11 @@ export const AddRepositoriesPage = () => {
                       ? 'icon-generate-cataloginfo-white'
                       : 'icon-generate-cataloginfo-black'
                   }
-                  iconText="Generate a catalog-info.yaml file for each repository"
+                  iconText={
+                    gitlabFeatureFlag
+                      ? 'Generate a catalog-info.yaml file for each selected item'
+                      : 'Generate a catalog-info.yaml file for each repository'
+                  }
                 />
                 <Illustrations
                   iconClassname={
@@ -135,10 +144,13 @@ export const AddRepositoriesPage = () => {
       </div>
     );
   };
-
   return (
     <Page themeId="tool">
-      <Header title="Add repositories" type="Bulk import" typeLink=".." />
+      <Header
+        title={gitlabFeatureFlag ? 'Import entities' : 'Add repositories'}
+        type="Bulk import"
+        typeLink=".."
+      />
       <Content noPadding>{showContent()}</Content>
     </Page>
   );

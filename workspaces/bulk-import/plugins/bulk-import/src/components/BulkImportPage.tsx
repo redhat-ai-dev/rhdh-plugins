@@ -14,15 +14,11 @@
  * limitations under the License.
  */
 
-import React from 'react';
+import { useRef } from 'react';
 
 import { Content, Header, Page, Progress } from '@backstage/core-components';
 import { usePermission } from '@backstage/plugin-permission-react';
 
-import {
-  DeleteDialogContextProvider,
-  DrawerContextProvider,
-} from '@janus-idp/shared-react';
 import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
 import FormControl from '@mui/material/FormControl';
@@ -36,11 +32,13 @@ import {
   ApprovalTool,
   RepositorySelection,
 } from '../types';
+import { DeleteDialogContextProvider } from './DeleteDialogContext';
+import { DrawerContextProvider } from './DrawerContext';
 import { RepositoriesList } from './Repositories/RepositoriesList';
 
 export const BulkImportPage = () => {
   // to store the queryClient instance
-  const queryClientRef = React.useRef<QueryClient>();
+  const queryClientRef = useRef<QueryClient>();
   const initialValues: AddRepositoriesFormValues = {
     repositoryType: RepositorySelection.Repository,
     repositories: {},
@@ -90,9 +88,7 @@ export const BulkImportPage = () => {
       <Header title="Bulk import" />
       <DrawerContextProvider>
         <DeleteDialogContextProvider>
-          <Content noPadding>
-            <div style={{ padding: '24px' }}>{showContent()}</div>
-          </Content>
+          <Content>{showContent()}</Content>
         </DeleteDialogContextProvider>
       </DrawerContextProvider>
     </Page>

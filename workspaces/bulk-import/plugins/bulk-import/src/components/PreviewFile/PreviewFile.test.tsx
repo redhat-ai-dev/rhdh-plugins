@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 
 import { TestApiProvider } from '@backstage/test-utils';
 
-import { useDrawer } from '@janus-idp/shared-react';
 import { fireEvent, render } from '@testing-library/react';
 import { useFormikContext } from 'formik';
 
@@ -30,6 +29,7 @@ import {
   mockGetRepositories,
 } from '../../mocks/mockData';
 import { ImportJobStatus, RepositorySelection } from '../../types';
+import { useDrawer } from '../DrawerContext';
 import { PreviewFile } from './PreviewFile';
 
 jest.mock('react', () => ({
@@ -37,8 +37,8 @@ jest.mock('react', () => ({
   useState: jest.fn(),
 }));
 
-jest.mock('@janus-idp/shared-react', () => ({
-  ...jest.requireActual('@janus-idp/shared-react'),
+jest.mock('../DrawerContext', () => ({
+  ...jest.requireActual('../DrawerContext'),
   useDrawer: jest.fn(),
 }));
 

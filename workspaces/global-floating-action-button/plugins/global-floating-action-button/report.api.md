@@ -6,7 +6,7 @@
 /// <reference types="react" />
 
 import { BackstagePlugin } from '@backstage/core-plugin-api';
-import { JSX as JSX_2 } from 'react';
+import { JSX as JSX_2 } from 'react/jsx-runtime';
 
 // @public
 export const DynamicGlobalFloatingActionButton: React.ComponentType;
@@ -39,6 +39,7 @@ export type FloatingActionButton = {
     | 'secondary'
     | 'success'
     | 'warning';
+  iconColor?: string;
   onClick?: React.MouseEventHandler;
   to?: string;
   toolTip?: string;

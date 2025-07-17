@@ -14,22 +14,9 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-
-import { makeStyles } from '@mui/styles';
+import Typography from '@mui/material/Typography';
 
 import { getImageForIconClass } from '../../utils/icons';
-
-const useStyles = makeStyles(() => ({
-  text: {
-    maxWidth: '150px',
-    textAlign: 'center',
-  },
-  img: {
-    justifyContent: 'center',
-    display: 'flex',
-  },
-}));
 
 export const Illustrations = ({
   iconClassname,
@@ -38,17 +25,29 @@ export const Illustrations = ({
   iconClassname: string;
   iconText: string;
 }) => {
-  const styles = useStyles();
   return (
     <div>
-      <span className={styles.img}>
+      <Typography
+        component="span"
+        style={{
+          justifyContent: 'center',
+          display: 'flex',
+        }}
+      >
         <img
           src={getImageForIconClass(iconClassname)}
           alt={iconText}
           height="100px"
         />
-      </span>
-      <p className={styles.text}>{iconText}</p>
+      </Typography>
+      <Typography
+        style={{
+          maxWidth: '150px',
+          textAlign: 'center',
+        }}
+      >
+        {iconText}
+      </Typography>
     </div>
   );
 };

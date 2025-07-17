@@ -26,21 +26,21 @@ import { BASE_PATH, COLLECTION_FORMATS, BaseAPI, RequiredError, operationServerM
 /**
  * 
  * @export
- * @interface AssessedProcessInstanceDTO
+ * @interface AuthToken
  */
-export interface AssessedProcessInstanceDTO {
+export interface AuthToken {
     /**
-     * 
-     * @type {ProcessInstanceDTO}
-     * @memberof AssessedProcessInstanceDTO
+     * The auth token provider name
+     * @type {string}
+     * @memberof AuthToken
      */
-    'instance': ProcessInstanceDTO;
+    'provider': string;
     /**
-     * 
-     * @type {ProcessInstanceDTO}
-     * @memberof AssessedProcessInstanceDTO
+     * The auth token itself retrieved from the above specified provider name
+     * @type {string}
+     * @memberof AuthToken
      */
-    'assessedBy'?: ProcessInstanceDTO;
+    'token': string;
 }
 /**
  * The ErrorResponse object represents a common structure for handling errors in API responses. It includes essential information about the error, such as the error message and additional optional details.
@@ -73,6 +73,12 @@ export interface ExecuteWorkflowRequestDTO {
      * @memberof ExecuteWorkflowRequestDTO
      */
     'inputData'?: object;
+    /**
+     * 
+     * @type {Array<AuthToken>}
+     * @memberof ExecuteWorkflowRequestDTO
+     */
+    'authTokens'?: Array<AuthToken>;
 }
 /**
  * 
@@ -137,7 +143,7 @@ export type FieldFilterValue = any | boolean | number | string;
  * @type Filter
  * @export
  */
-export type Filter = FieldFilter | LogicalFilter;
+export type Filter = FieldFilter | LogicalFilter | NestedFilter;
 
 /**
  * 
@@ -204,6 +210,31 @@ export const LogicalFilterOperatorEnum = {
 } as const;
 
 export type LogicalFilterOperatorEnum = typeof LogicalFilterOperatorEnum[keyof typeof LogicalFilterOperatorEnum];
+
+/**
+ * 
+ * @export
+ * @interface NestedFilter
+ */
+export interface NestedFilter {
+    /**
+     * 
+     * @type {string}
+     * @memberof NestedFilter
+     */
+    'field': string;
+    /**
+     * 
+     * @type {NestedFilterNested}
+     * @memberof NestedFilter
+     */
+    'nested': NestedFilterNested;
+}
+/**
+ * @type NestedFilterNested
+ * @export
+ */
+export type NestedFilterNested = FieldFilter | NestedFilter;
 
 /**
  * 
@@ -361,12 +392,6 @@ export interface ProcessInstanceDTO {
     'duration'?: string;
     /**
      * 
-     * @type {WorkflowCategoryDTO}
-     * @memberof ProcessInstanceDTO
-     */
-    'category'?: WorkflowCategoryDTO;
-    /**
-     * 
      * @type {string}
      * @memberof ProcessInstanceDTO
      */
@@ -382,7 +407,13 @@ export interface ProcessInstanceDTO {
      * @type {string}
      * @memberof ProcessInstanceDTO
      */
-    'businessKey'?: string;
+    'initiatorEntity'?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof ProcessInstanceDTO
+     */
+    'executionSummary'?: Array<string>;
     /**
      * 
      * @type {Array<NodeInstanceDTO>}
@@ -480,20 +511,6 @@ export interface SearchRequest {
     'paginationInfo'?: PaginationInfoDTO;
 }
 /**
- * Category of the workflow
- * @export
- * @enum {string}
- */
-
-export const WorkflowCategoryDTO = {
-    Assessment: 'assessment',
-    Infrastructure: 'infrastructure'
-} as const;
-
-export type WorkflowCategoryDTO = typeof WorkflowCategoryDTO[keyof typeof WorkflowCategoryDTO];
-
-
-/**
  * 
  * @export
  * @interface WorkflowDTO
@@ -517,12 +534,6 @@ export interface WorkflowDTO {
      * @memberof WorkflowDTO
      */
     'format': WorkflowFormatDTO;
-    /**
-     * 
-     * @type {WorkflowCategoryDTO}
-     * @memberof WorkflowDTO
-     */
-    'category': WorkflowCategoryDTO;
     /**
      * Description of the workflow
      * @type {string}
@@ -628,16 +639,16 @@ export interface WorkflowOverviewDTO {
     'lastRunStatus'?: ProcessInstanceStatusDTO;
     /**
      * 
-     * @type {WorkflowCategoryDTO}
-     * @memberof WorkflowOverviewDTO
-     */
-    'category'?: WorkflowCategoryDTO;
-    /**
-     * 
      * @type {string}
      * @memberof WorkflowOverviewDTO
      */
     'description'?: string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof WorkflowOverviewDTO
+     */
+    'isAvailable'?: boolean;
 }
 
 
@@ -736,12 +747,6 @@ export interface WorkflowProgressDTO {
  */
 export interface WorkflowResultDTO {
     /**
-     * The state of workflow completion.
-     * @type {string}
-     * @memberof WorkflowResultDTO
-     */
-    'completedWith'?: WorkflowResultDTOCompletedWithEnum;
-    /**
      * High-level summary of the current status, free-form text, human readable.
      * @type {string}
      * @memberof WorkflowResultDTO
@@ -760,14 +765,6 @@ export interface WorkflowResultDTO {
      */
     'outputs'?: Array<WorkflowResultDTOOutputsInner>;
 }
-
-export const WorkflowResultDTOCompletedWithEnum = {
-    Error: 'error',
-    Success: 'success'
-} as const;
-
-export type WorkflowResultDTOCompletedWithEnum = typeof WorkflowResultDTOCompletedWithEnum[keyof typeof WorkflowResultDTOCompletedWithEnum];
-
 /**
  * 
  * @export
@@ -893,11 +890,10 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
          * @summary Execute a workflow
          * @param {string} workflowId ID of the workflow to execute
          * @param {ExecuteWorkflowRequestDTO} executeWorkflowRequestDTO 
-         * @param {string} [businessKey] ID of the parent workflow
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        executeWorkflow: async (workflowId: string, executeWorkflowRequestDTO: ExecuteWorkflowRequestDTO, businessKey?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        executeWorkflow: async (workflowId: string, executeWorkflowRequestDTO: ExecuteWorkflowRequestDTO, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workflowId' is not null or undefined
             assertParamExists('executeWorkflow', 'workflowId', workflowId)
             // verify required parameter 'executeWorkflowRequestDTO' is not null or undefined
@@ -914,10 +910,6 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
             const localVarHeaderParameter = {} as any;
             const localVarQueryParameter = {} as any;
-
-            if (businessKey !== undefined) {
-                localVarQueryParameter['businessKey'] = businessKey;
-            }
 
 
     
@@ -937,11 +929,10 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
          * Get a workflow execution/run (instance)
          * @summary Get Workflow Instance by ID
          * @param {string} instanceId ID of the workflow instance
-         * @param {boolean} [includeAssessment] Whether to include assessment
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getInstanceById: async (instanceId: string, includeAssessment?: boolean, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        getInstanceById: async (instanceId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'instanceId' is not null or undefined
             assertParamExists('getInstanceById', 'instanceId', instanceId)
             const localVarPath = `/v2/workflows/instances/{instanceId}`
@@ -956,10 +947,6 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
             const localVarHeaderParameter = {} as any;
             const localVarQueryParameter = {} as any;
-
-            if (includeAssessment !== undefined) {
-                localVarQueryParameter['includeAssessment'] = includeAssessment;
-            }
 
 
     
@@ -1212,6 +1199,39 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             };
         },
         /**
+         * Returns true if the workflow service is up for the given workflow ID.
+         * @param {string} workflowId ID of the workflow to fetch
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        pingWorkflowServiceById: async (workflowId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workflowId' is not null or undefined
+            assertParamExists('pingWorkflowServiceById', 'workflowId', workflowId)
+            const localVarPath = `/v2/workflows/{workflowId}/pingWorkflowService`
+                .replace(`{${"workflowId"}}`, encodeURIComponent(String(workflowId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Retrigger an instance
          * @summary Retrigger an instance
          * @param {string} workflowId ID of the workflow
@@ -1277,12 +1297,11 @@ export const DefaultApiFp = function(configuration?: Configuration) {
          * @summary Execute a workflow
          * @param {string} workflowId ID of the workflow to execute
          * @param {ExecuteWorkflowRequestDTO} executeWorkflowRequestDTO 
-         * @param {string} [businessKey] ID of the parent workflow
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async executeWorkflow(workflowId: string, executeWorkflowRequestDTO: ExecuteWorkflowRequestDTO, businessKey?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExecuteWorkflowResponseDTO>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.executeWorkflow(workflowId, executeWorkflowRequestDTO, businessKey, options);
+        async executeWorkflow(workflowId: string, executeWorkflowRequestDTO: ExecuteWorkflowRequestDTO, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExecuteWorkflowResponseDTO>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.executeWorkflow(workflowId, executeWorkflowRequestDTO, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DefaultApi.executeWorkflow']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -1291,12 +1310,11 @@ export const DefaultApiFp = function(configuration?: Configuration) {
          * Get a workflow execution/run (instance)
          * @summary Get Workflow Instance by ID
          * @param {string} instanceId ID of the workflow instance
-         * @param {boolean} [includeAssessment] Whether to include assessment
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getInstanceById(instanceId: string, includeAssessment?: boolean, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AssessedProcessInstanceDTO>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getInstanceById(instanceId, includeAssessment, options);
+        async getInstanceById(instanceId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ProcessInstanceDTO>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getInstanceById(instanceId, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DefaultApi.getInstanceById']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -1390,6 +1408,18 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Returns true if the workflow service is up for the given workflow ID.
+         * @param {string} workflowId ID of the workflow to fetch
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async pingWorkflowServiceById(workflowId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<boolean>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.pingWorkflowServiceById(workflowId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.pingWorkflowServiceById']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Retrigger an instance
          * @summary Retrigger an instance
          * @param {string} workflowId ID of the workflow
@@ -1428,23 +1458,21 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
          * @summary Execute a workflow
          * @param {string} workflowId ID of the workflow to execute
          * @param {ExecuteWorkflowRequestDTO} executeWorkflowRequestDTO 
-         * @param {string} [businessKey] ID of the parent workflow
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        executeWorkflow(workflowId: string, executeWorkflowRequestDTO: ExecuteWorkflowRequestDTO, businessKey?: string, options?: any): AxiosPromise<ExecuteWorkflowResponseDTO> {
-            return localVarFp.executeWorkflow(workflowId, executeWorkflowRequestDTO, businessKey, options).then((request) => request(axios, basePath));
+        executeWorkflow(workflowId: string, executeWorkflowRequestDTO: ExecuteWorkflowRequestDTO, options?: any): AxiosPromise<ExecuteWorkflowResponseDTO> {
+            return localVarFp.executeWorkflow(workflowId, executeWorkflowRequestDTO, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a workflow execution/run (instance)
          * @summary Get Workflow Instance by ID
          * @param {string} instanceId ID of the workflow instance
-         * @param {boolean} [includeAssessment] Whether to include assessment
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getInstanceById(instanceId: string, includeAssessment?: boolean, options?: any): AxiosPromise<AssessedProcessInstanceDTO> {
-            return localVarFp.getInstanceById(instanceId, includeAssessment, options).then((request) => request(axios, basePath));
+        getInstanceById(instanceId: string, options?: any): AxiosPromise<ProcessInstanceDTO> {
+            return localVarFp.getInstanceById(instanceId, options).then((request) => request(axios, basePath));
         },
         /**
          * Retrieve an array of workflow executions (instances)
@@ -1514,6 +1542,15 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.getWorkflowsOverview(searchRequest, options).then((request) => request(axios, basePath));
         },
         /**
+         * Returns true if the workflow service is up for the given workflow ID.
+         * @param {string} workflowId ID of the workflow to fetch
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        pingWorkflowServiceById(workflowId: string, options?: any): AxiosPromise<boolean> {
+            return localVarFp.pingWorkflowServiceById(workflowId, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Retrigger an instance
          * @summary Retrigger an instance
          * @param {string} workflowId ID of the workflow
@@ -1551,26 +1588,24 @@ export class DefaultApi extends BaseAPI {
      * @summary Execute a workflow
      * @param {string} workflowId ID of the workflow to execute
      * @param {ExecuteWorkflowRequestDTO} executeWorkflowRequestDTO 
-     * @param {string} [businessKey] ID of the parent workflow
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof DefaultApi
      */
-    public executeWorkflow(workflowId: string, executeWorkflowRequestDTO: ExecuteWorkflowRequestDTO, businessKey?: string, options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).executeWorkflow(workflowId, executeWorkflowRequestDTO, businessKey, options).then((request) => request(this.axios, this.basePath));
+    public executeWorkflow(workflowId: string, executeWorkflowRequestDTO: ExecuteWorkflowRequestDTO, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).executeWorkflow(workflowId, executeWorkflowRequestDTO, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Get a workflow execution/run (instance)
      * @summary Get Workflow Instance by ID
      * @param {string} instanceId ID of the workflow instance
-     * @param {boolean} [includeAssessment] Whether to include assessment
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof DefaultApi
      */
-    public getInstanceById(instanceId: string, includeAssessment?: boolean, options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).getInstanceById(instanceId, includeAssessment, options).then((request) => request(this.axios, this.basePath));
+    public getInstanceById(instanceId: string, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).getInstanceById(instanceId, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -1652,6 +1687,17 @@ export class DefaultApi extends BaseAPI {
      */
     public getWorkflowsOverview(searchRequest?: SearchRequest, options?: RawAxiosRequestConfig) {
         return DefaultApiFp(this.configuration).getWorkflowsOverview(searchRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Returns true if the workflow service is up for the given workflow ID.
+     * @param {string} workflowId ID of the workflow to fetch
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public pingWorkflowServiceById(workflowId: string, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).pingWorkflowServiceById(workflowId, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

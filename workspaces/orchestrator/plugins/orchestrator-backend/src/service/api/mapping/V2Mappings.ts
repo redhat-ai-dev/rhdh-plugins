@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Backstage Authors
+ * Copyright Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import moment from 'moment';
 
 import {
@@ -20,16 +21,12 @@ import {
   ExecuteWorkflowResponseDTO,
   extractWorkflowFormat,
   fromWorkflowSource,
-  getWorkflowCategory,
   NodeInstance,
   NodeInstanceDTO,
   ProcessInstance,
   ProcessInstanceDTO,
   ProcessInstanceState,
   ProcessInstanceStatusDTO,
-  WorkflowCategory,
-  WorkflowCategoryDTO,
-  WorkflowDefinition,
   WorkflowDTO,
   WorkflowExecutionResponse,
   WorkflowFormatDTO,
@@ -53,22 +50,8 @@ export function mapToWorkflowOverviewDTO(
       ? getProcessInstancesStatusDTOFromString(overview.lastRunStatus)
       : undefined,
     lastTriggeredMs: overview.lastTriggeredMs,
-    category: mapWorkflowCategoryDTOFromString(overview.category),
+    isAvailable: overview.isAvailable,
   };
-}
-
-export function mapWorkflowCategoryDTOFromString(
-  category?: string,
-): WorkflowCategoryDTO {
-  return category?.toLocaleLowerCase() === 'assessment'
-    ? 'assessment'
-    : 'infrastructure';
-}
-
-export function getWorkflowCategoryDTO(
-  definition: WorkflowDefinition | undefined,
-): WorkflowCategoryDTO {
-  return getWorkflowCategory(definition);
 }
 
 export function getWorkflowFormatDTO(source: string): WorkflowFormatDTO {
@@ -79,21 +62,11 @@ export function mapToWorkflowDTO(source: string): WorkflowDTO {
   const definition = fromWorkflowSource(source);
   return {
     annotations: definition.annotations,
-    category: getWorkflowCategoryDTO(definition),
     description: definition.description,
     name: definition.name,
     format: getWorkflowFormatDTO(source),
     id: definition.id,
   };
-}
-
-export function mapWorkflowCategoryDTO(
-  category?: WorkflowCategory,
-): WorkflowCategoryDTO {
-  if (category === WorkflowCategory.ASSESSMENT) {
-    return 'assessment';
-  }
-  return 'infrastructure';
 }
 
 export function getProcessInstancesStatusDTOFromString(
@@ -133,15 +106,15 @@ export function mapToProcessInstanceDTO(
     processName: processInstance.processName,
     description: processInstance.description,
     serviceUrl: processInstance.serviceUrl,
-    businessKey: processInstance.businessKey,
+    executionSummary: processInstance.executionSummary,
     endpoint: processInstance.endpoint,
     error: processInstance.error,
-    category: mapWorkflowCategoryDTO(processInstance.category),
     start: processInstance.start,
     end: processInstance.end,
     duration: duration,
     // @ts-ignore
     workflowdata: variables?.workflowdata,
+    initiatorEntity: variables?.initiatorEntity as string,
     state: processInstance.state
       ? getProcessInstancesStatusDTOFromString(processInstance.state)
       : undefined,

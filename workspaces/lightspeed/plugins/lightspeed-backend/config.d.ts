@@ -37,5 +37,20 @@ export interface Config {
        */
       token?: string;
     }>;
+    /**
+     * query restriction validation (Enabled by default).
+     * @visibility frontend
+     */
+    questionValidation?: boolean;
+    /**
+     * configure the port number for the lightspeed service.
+     * @visibility backend
+     */
+    servicePort?: number;
+    /**
+     * customize system prompt for the lightspeed service.
+     * @visibility backend
+     */
+    systemPrompt?: string;
   };
 }

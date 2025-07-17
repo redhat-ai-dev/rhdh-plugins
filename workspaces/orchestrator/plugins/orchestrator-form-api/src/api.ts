@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Backstage Authors
+ * Copyright Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,12 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { createApiRef } from '@backstage/core-plugin-api';
+
+import { createApiRef, useApiHolder } from '@backstage/core-plugin-api';
 import { JsonObject } from '@backstage/types';
 
 import { FormProps } from '@rjsf/core';
 import { ErrorSchema, UiSchema } from '@rjsf/utils';
 import type { JSONSchema7 } from 'json-schema';
+
+import { AuthTokenDescriptor } from '@red-hat-developer-hub/backstage-plugin-orchestrator-common';
+
+import { defaultFormExtensionsApi } from './DefaultFormApi';
+
+/**
+/**
+ * @public
+ *
+ */
+export type OrchestratorFormContextProps = {
+  schema: JSONSchema7;
+  updateSchema: OrchestratorFormSchemaUpdater;
+  numStepsInMultiStepSchema?: number;
+  uiSchema: UiSchema<JsonObject, JSONSchema7>;
+  formData: JsonObject;
+  setFormData: (data: JsonObject) => void;
+  children: React.ReactNode;
+  onSubmit: (formData: JsonObject) => void;
+  setAuthTokenDescriptors: (
+    authTokenDescriptors: AuthTokenDescriptor[],
+  ) => void;
+};
 
 /**
  * @public
@@ -43,11 +67,17 @@ import type { JSONSchema7 } from 'json-schema';
  *   The orchestrator form component will call getExtraErrors when running onSubmit.
  */
 export type FormDecoratorProps = Pick<
-  FormProps<JsonObject, JSONSchema7>,
-  'formData' | 'formContext' | 'widgets' | 'onChange' | 'customValidate'
+  FormProps<JsonObject, JSONSchema7, OrchestratorFormContextProps>,
+  | 'formData'
+  | 'formContext'
+  | 'widgets'
+  | 'onChange'
+  | 'customValidate'
+  | 'templates'
 > & {
   getExtraErrors?: (
     formData: JsonObject,
+    uiSchema: OrchestratorFormContextProps['uiSchema'],
   ) => Promise<ErrorSchema<JsonObject>> | undefined;
 };
 
@@ -58,7 +88,28 @@ export type FormDecoratorProps = Pick<
  */
 export type OrchestratorFormDecorator = (
   FormComponent: React.ComponentType<FormDecoratorProps>,
-) => React.ComponentType;
+) => React.ComponentType<OrchestratorFormContextProps>;
+
+/**
+ * @public
+ *
+ * Expected response received by fetch:url of the SchemaUpdater widget.
+ *
+ * Key is the JSON Schema placeholder identifier,
+ * Value is content the key will be newly assigned to.
+ */
+export type SchemaChunksResponse = {
+  [key: string]: JsonObject;
+};
+
+/**
+ * @public
+ *
+ * Function provided by the Orchestrator down to the OrchestratorFormApi to update the form's JSON Schema on the fly.
+ */
+export type OrchestratorFormSchemaUpdater = (
+  chunks: SchemaChunksResponse,
+) => void;
 
 /**
  * @public
@@ -68,14 +119,19 @@ export type OrchestratorFormDecorator = (
 export interface OrchestratorFormApi {
   /**
    * @public
+   * Context wrapping the RJSF form on Workflow execution page, making it available for the custom widgets.
+   *
+   * Must be created by the API to share just a single instance within both the OrchestratorFormApi and
+   * the Orchestrator where the context is actually provided (see OrchestratorFormWrapper).
+   */
+  // getFormContext(): Context<OrchestratorFormContextProps | null>;
+
+  /**
+   * @public
    * getFormDecorator
    * return the form decorator
    */
-  getFormDecorator(
-    schema: JSONSchema7,
-    uiSchema: UiSchema<JsonObject, JSONSchema7>,
-    initialFormData?: JsonObject,
-  ): OrchestratorFormDecorator;
+  getFormDecorator(): OrchestratorFormDecorator;
 }
 
 /**
@@ -86,3 +142,6 @@ export interface OrchestratorFormApi {
 export const orchestratorFormApiRef = createApiRef<OrchestratorFormApi>({
   id: 'plugin.orchestrator.form',
 });
+
+export const useOrchestratorFormApiOrDefault = (): OrchestratorFormApi =>
+  useApiHolder().get(orchestratorFormApiRef) ?? defaultFormExtensionsApi;

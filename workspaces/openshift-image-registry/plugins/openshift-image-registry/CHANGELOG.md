@@ -1,5 +1,75 @@
 ### Dependencies
 
+## 1.13.1
+
+### Patch Changes
+
+- 2b037a9: Dev dependency update.
+- 2b037a9: Replaced internal usage of `formatByteSize` with a local implementation using the `filesize` library, matching the original output format.
+
+## 1.13.0
+
+### Minor Changes
+
+- 2ac5cf5: Backstage version bump to v1.39.1
+
+## 1.12.5
+
+### Patch Changes
+
+- 7f7267a: Updated dependency `@red-hat-developer-hub/backstage-plugin-theme` to `^0.8.0`.
+
+## 1.12.4
+
+### Patch Changes
+
+- a9e5f32: Updated dependency `@openapitools/openapi-generator-cli` to `2.20.0`.
+  Updated dependency `prettier` to `3.5.3`.
+  Updated dependency `@redhat-developer/red-hat-developer-hub-theme` to `0.5.1`.
+  Updated dependency `@red-hat-developer-hub/backstage-plugin-theme` to `^0.6.0`.
+  Updated dependency `@janus-idp/cli` to `3.5.0`.
+- 002f7c9: Updated dependency `@testing-library/user-event` to `14.6.1`.
+- 6103648: Updated dependency `@janus-idp/shared-react` to `2.18.0`.
+
+## 1.12.3
+
+### Patch Changes
+
+- 206fef8: Remove unused devDependency for @types/node
+
+## 1.12.2
+
+### Patch Changes
+
+- df6fd7e: Updated dependency `@types/node` to `18.19.87`.
+
+## 1.12.1
+
+### Patch Changes
+
+- c2f8760: Updated dependency `@types/node` to `18.19.86`.
+
+## 1.12.0
+
+### Minor Changes
+
+- 42b88c7: Backstage version bump to v1.36.1
+
+## 1.11.2
+
+### Patch Changes
+
+- 707da0e: Updated dependency `@janus-idp/shared-react` to `2.16.0`.
+- 0fa1d3a: Updated dependency `@types/node` to `18.19.79`.
+- 5b20c97: Updated dependency `@types/node` to `18.19.78`.
+- 9e6f561: Updated dependency `@types/node` to `18.19.76`.
+
+## 1.11.1
+
+### Patch Changes
+
+- 187368f: Updated dependency `@janus-idp/shared-react` to `2.15.0`.
+
 ## 1.11.0
 
 ### Minor Changes
@@ -47,7 +117,6 @@
 ### Minor Changes
 
 - 15d2695: Rebased with latest changes from janus-idp/backstage-plugins:
-
   - update to backstage 1.31
   - upgrade to yarn v3
 

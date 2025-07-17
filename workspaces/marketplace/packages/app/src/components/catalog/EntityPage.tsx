@@ -1,5 +1,5 @@
 /*
- * Copyright Red Hat, Inc.
+ * Copyright The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import React from 'react';
 import { Button, Grid } from '@material-ui/core';
 import {
   EntityApiDefinitionCard,
@@ -94,7 +93,6 @@ const cicdContent = (
         <EntityGithubActionsContent />
       </EntitySwitch.Case>
      */}
-
     <EntitySwitch.Case>
       <EmptyState
         title="No CI/CD available for this entity"

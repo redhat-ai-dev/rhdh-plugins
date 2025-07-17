@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Backstage Authors
+ * Copyright Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
 import type { JsonObject } from '@backstage/types';
 
@@ -25,13 +26,15 @@ import axios, {
 } from 'axios';
 
 import {
-  AssessedProcessInstanceDTO,
+  AuthToken,
   Configuration,
   DefaultApi,
+  ExecuteWorkflowRequestDTO,
   ExecuteWorkflowResponseDTO,
   Filter,
   InputSchemaResponseDTO,
   PaginationInfoDTO,
+  ProcessInstanceDTO,
   ProcessInstanceListResultDTO,
   WorkflowOverviewDTO,
   WorkflowOverviewListResultDTO,
@@ -99,16 +102,20 @@ export class OrchestratorClient implements OrchestratorApi {
   async executeWorkflow(args: {
     workflowId: string;
     parameters: JsonObject;
-    businessKey?: string;
+    authTokens: AuthToken[];
   }): Promise<AxiosResponse<ExecuteWorkflowResponseDTO>> {
     const defaultApi = await this.getDefaultAPI();
     const reqConfigOption: AxiosRequestConfig =
       await this.getDefaultReqConfig();
+
+    const requestBody: ExecuteWorkflowRequestDTO = {
+      inputData: args.parameters,
+      authTokens: args.authTokens,
+    };
     try {
       return await defaultApi.executeWorkflow(
         args.workflowId,
-        { inputData: args.parameters },
-        args.businessKey,
+        requestBody,
         reqConfigOption,
       );
     } catch (err) {
@@ -198,17 +205,12 @@ export class OrchestratorClient implements OrchestratorApi {
 
   async getInstance(
     instanceId: string,
-    includeAssessment = false,
-  ): Promise<AxiosResponse<AssessedProcessInstanceDTO>> {
+  ): Promise<AxiosResponse<ProcessInstanceDTO>> {
     const defaultApi = await this.getDefaultAPI();
     const reqConfigOption: AxiosRequestConfig =
       await this.getDefaultReqConfig();
     try {
-      return await defaultApi.getInstanceById(
-        instanceId,
-        includeAssessment,
-        reqConfigOption,
-      );
+      return await defaultApi.getInstanceById(instanceId, reqConfigOption);
     } catch (err) {
       throw getError(err);
     }
@@ -225,6 +227,21 @@ export class OrchestratorClient implements OrchestratorApi {
       return await defaultApi.getWorkflowInputSchemaById(
         workflowId,
         instanceId,
+        reqConfigOption,
+      );
+    } catch (err) {
+      throw getError(err);
+    }
+  }
+  async pingWorkflowService(
+    workflowId: string,
+  ): Promise<AxiosResponse<boolean>> {
+    const defaultApi = await this.getDefaultAPI();
+    const reqConfigOption: AxiosRequestConfig =
+      await this.getDefaultReqConfig();
+    try {
+      return await defaultApi.pingWorkflowServiceById(
+        workflowId,
         reqConfigOption,
       );
     } catch (err) {

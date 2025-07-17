@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Backstage Authors
+ * Copyright Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
 import type { JsonObject } from '@backstage/types';
 
@@ -24,12 +25,12 @@ import axios, {
 } from 'axios';
 
 import {
-  AssessedProcessInstanceDTO,
+  AuthToken,
   DefaultApi,
   ExecuteWorkflowResponseDTO,
   PaginationInfoDTO,
+  ProcessInstanceDTO,
   ProcessInstanceListResultDTO,
-  QUERY_PARAM_INCLUDE_ASSESSMENT,
   WorkflowFormatDTO,
   WorkflowOverviewDTO,
   WorkflowOverviewListResultDTO,
@@ -50,9 +51,6 @@ describe('OrchestratorClient', () => {
   const baseUrl = 'https://api.example.com';
   const mockToken = 'test-token';
   const defaultAuthHeaders = { Authorization: `Bearer ${mockToken}` };
-
-  const mockFetch = jest.fn();
-  (global as any).fetch = mockFetch; // Cast global to any to avoid TypeScript errors
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -83,11 +81,7 @@ describe('OrchestratorClient', () => {
   describe('executeWorkflow', () => {
     const workflowId = 'workflow123';
 
-    const setupTest = (
-      executionId: string,
-      parameters: JsonObject,
-      businessKey?: string,
-    ) => {
+    const setupTest = (executionId: string, parameters: JsonObject) => {
       const mockExecResponse: ExecuteWorkflowResponseDTO = { id: executionId };
       const mockResponse: AxiosResponse<ExecuteWorkflowResponseDTO> = {
         data: mockExecResponse,
@@ -103,7 +97,20 @@ describe('OrchestratorClient', () => {
       );
       axios.request = jest.fn().mockResolvedValueOnce(mockResponse);
 
-      const args = { workflowId, parameters, businessKey };
+      const args: {
+        workflowId: string;
+        parameters: JsonObject;
+        authTokens: AuthToken[];
+      } = {
+        workflowId,
+        parameters,
+        authTokens: [
+          {
+            provider: 'github',
+            token: 'mock-token',
+          },
+        ],
+      };
 
       return { mockExecResponse, executeWorkflowSpy, args };
     };
@@ -113,19 +120,22 @@ describe('OrchestratorClient', () => {
       mockExecResponse: ExecuteWorkflowResponseDTO,
       executeWorkflowSpy: jest.SpyInstance,
       parameters: JsonObject,
-      businessKey?: string,
     ) => {
       return () => {
         expect(result).toBeDefined();
         expect(result.data).toEqual(mockExecResponse);
         expect(axios.request).toHaveBeenCalledTimes(1);
         expect(axios.request).toHaveBeenCalledWith({
-          ...getAxiosTestRequest(
-            `/v2/workflows/${workflowId}/execute${
-              businessKey ? `?businessKey=${businessKey}` : ''
-            }`,
-          ),
-          data: JSON.stringify({ inputData: parameters }),
+          ...getAxiosTestRequest(`/v2/workflows/${workflowId}/execute`),
+          data: JSON.stringify({
+            inputData: parameters,
+            authTokens: [
+              {
+                provider: 'github',
+                token: 'mock-token',
+              },
+            ],
+          }),
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -135,8 +145,15 @@ describe('OrchestratorClient', () => {
         expect(executeWorkflowSpy).toHaveBeenCalledTimes(1);
         expect(executeWorkflowSpy).toHaveBeenCalledWith(
           workflowId,
-          { inputData: parameters },
-          businessKey,
+          {
+            inputData: parameters,
+            authTokens: [
+              {
+                provider: 'github',
+                token: 'mock-token',
+              },
+            ],
+          },
           getDefaultTestRequestConfig(),
         );
       };
@@ -157,35 +174,25 @@ describe('OrchestratorClient', () => {
         getExpectations(result, mockExecResponse, executeWorkflowSpy, {}),
       ).not.toThrow();
     });
-    it('should execute workflow with business key', async () => {
+    it('should execute workflow', async () => {
       // Given
-      const businessKey = 'business123';
       const { mockExecResponse, executeWorkflowSpy, args } = setupTest(
         'execId001',
         {},
-        businessKey,
       );
 
       const result = await orchestratorClient.executeWorkflow(args);
 
       expect(
-        getExpectations(
-          result,
-          mockExecResponse,
-          executeWorkflowSpy,
-          {},
-          businessKey,
-        ),
+        getExpectations(result, mockExecResponse, executeWorkflowSpy, {}),
       ).not.toThrow();
     });
     it('should execute workflow with parameters and business key', async () => {
       // Given
-      const businessKey = 'business123';
       const parameters = { param1: 'one', param2: 2, param3: true };
       const { mockExecResponse, executeWorkflowSpy, args } = setupTest(
         'execId001',
         parameters,
-        businessKey,
       );
 
       const result = await orchestratorClient.executeWorkflow(args);
@@ -196,7 +203,6 @@ describe('OrchestratorClient', () => {
           mockExecResponse,
           executeWorkflowSpy,
           parameters,
-          businessKey,
         ),
       ).not.toThrow();
     });
@@ -462,18 +468,13 @@ describe('OrchestratorClient', () => {
     it('should return instance when successful', async () => {
       // Given
       const instanceId = 'instance123';
-      const instanceIdParent = 'instance000';
-      const includeAssessment = false;
-      const mockInstance: AssessedProcessInstanceDTO = {
-        instance: { id: instanceId, processId: 'process002', nodes: [] },
-        assessedBy: {
-          id: instanceIdParent,
-          processId: 'process001',
-          nodes: [],
-        },
+      const mockInstance: ProcessInstanceDTO = {
+        id: instanceId,
+        processId: 'process002',
+        nodes: [],
       };
 
-      const mockResponse: AxiosResponse<AssessedProcessInstanceDTO> = {
+      const mockResponse: AxiosResponse<ProcessInstanceDTO> = {
         data: mockInstance,
         status: 200,
         statusText: 'OK',
@@ -489,25 +490,18 @@ describe('OrchestratorClient', () => {
         'getInstanceById',
       );
       // When
-      const result = await orchestratorClient.getInstance(
-        instanceId,
-        includeAssessment,
-      );
+      const result = await orchestratorClient.getInstance(instanceId);
 
       // Then
       expect(result).toBeDefined();
       expect(result.data).toEqual(mockInstance);
       expect(axios.request).toHaveBeenCalledTimes(1);
       expect(axios.request).toHaveBeenCalledWith(
-        getAxiosTestRequest(
-          `v2/workflows/instances/${instanceId}`,
-          includeAssessment,
-        ),
+        getAxiosTestRequest(`v2/workflows/instances/${instanceId}`),
       );
       expect(getInstanceSpy).toHaveBeenCalledTimes(1);
       expect(getInstanceSpy).toHaveBeenCalledWith(
         instanceId,
-        includeAssessment,
         getDefaultTestRequestConfig(),
       );
     });
@@ -596,7 +590,6 @@ describe('OrchestratorClient', () => {
 
   function getAxiosTestRequest(
     endpoint: string,
-    includeAssessment?: boolean,
     paginationInfo?: PaginationInfoDTO,
     method: string = 'GET',
   ): AxiosRequestConfig {
@@ -605,22 +598,15 @@ describe('OrchestratorClient', () => {
     return {
       ...req,
       method,
-      url: buildURLWithPagination(endpoint, includeAssessment, paginationInfo),
+      url: buildURLWithPagination(endpoint, paginationInfo),
     };
   }
 
   function buildURLWithPagination(
     endpoint: string,
-    includeAssessment?: boolean,
     paginationInfo?: PaginationInfoDTO,
   ): string {
     const url = new URL(endpoint, baseUrl);
-    if (includeAssessment !== undefined) {
-      url.searchParams.append(
-        QUERY_PARAM_INCLUDE_ASSESSMENT,
-        String(includeAssessment),
-      );
-    }
     if (paginationInfo?.offset !== undefined) {
       url.searchParams.append('page', paginationInfo.offset.toString());
     }

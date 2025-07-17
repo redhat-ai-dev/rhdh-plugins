@@ -34,7 +34,10 @@ lightspeed:
   servers:
     - id: <server id>
       url: <serverURL>
-      token: <api key> # dummy token
+      token: <api key>
+  questionValidation: true # Optional - To disable question (prompt) validation set it to false.
+  servicePort: <portNumber> # Optional - Change the LS service port nubmer. Defaults to 8080.
+  systemPrompt: <system prompt> # Optional - Override the default system prompt.
 ```
 
 Example local development configuration:
@@ -47,6 +50,17 @@ lightspeed:
       token: 'js92n-ssj28dbdk902' # dummy token
 ```
 
+`questionValidation` is default to be enabled with topic restriction on RHDH related topics.
+If you want to disable the validation, set the value to be `false`.
+
+Example configuration to disable `questionValidation`:
+
+```yaml
+lightspeed:
+  questionValidation: false
+  servers: ... ...
+```
+
 #### Permission Framework Support
 
 The Lightspeed Backend plugin has support for the permission framework.
@@ -54,9 +68,9 @@ The Lightspeed Backend plugin has support for the permission framework.
 - When [RBAC permission](https://github.com/backstage/community-plugins/tree/main/workspaces/rbac/plugins/rbac-backend#installation) framework is enabled, for non-admin users to access lightspeed backend API, the role associated with your user should have the following permission policies associated with it. Add the following in your permission policies configuration file named `rbac-policy.csv`:
 
 ```CSV
-p, role:default/team_a, lightspeed.conversations.read, read, allow
-p, role:default/team_a, lightspeed.conversations.create, create, allow
-p, role:default/team_a, lightspeed.conversations.delete, delete, allow
+p, role:default/team_a, lightspeed.chat.read, read, allow
+p, role:default/team_a, lightspeed.chat.create, create, allow
+p, role:default/team_a, lightspeed.chat.delete, delete, allow
 
 g, user:default/<your-user-name>, role:default/team_a
 

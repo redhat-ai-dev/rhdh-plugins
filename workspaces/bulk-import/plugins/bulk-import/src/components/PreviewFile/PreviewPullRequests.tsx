@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
+import type { ChangeEvent, ReactNode } from 'react';
+import { useState } from 'react';
 
 import ErrorOutline from '@mui/icons-material/ErrorOutline';
 import InfoOutlined from '@mui/icons-material/InfoOutlined';
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
+import Typography from '@mui/material/Typography';
 import { useFormikContext } from 'formik';
 
 import {
@@ -36,7 +38,7 @@ const CustomTabPanel = ({
   index,
   ...other
 }: {
-  children?: React.ReactNode;
+  children?: ReactNode;
   index: number;
   value: number;
 }) => {
@@ -55,24 +57,24 @@ const CustomTabPanel = ({
 const getLabel = (status: any, repoId: string, repoName: string) => {
   if (status?.errors?.[`${repoId}`]) {
     return (
-      <span data-testid="pr-creation-failed">
+      <Typography component="span" data-testid="pr-creation-failed">
         <ErrorOutline
           color="error"
           style={{ verticalAlign: 'sub', paddingTop: '7px' }}
         />{' '}
         {repoName}
-      </span>
+      </Typography>
     );
   }
   if (status?.infos?.[`${repoId}`]) {
     return (
-      <span data-testid="info-message">
+      <Typography component="span" data-testid="info-message">
         <InfoOutlined
           color="info"
           style={{ verticalAlign: 'sub', paddingTop: '7px' }}
         />{' '}
         {repoName}
-      </span>
+      </Typography>
     );
   }
   return repoName;
@@ -91,10 +93,10 @@ export const PreviewPullRequests = ({
   formErrors: PullRequestPreviewData;
   setFormErrors: (pullRequest: PullRequestPreviewData) => void;
 }) => {
-  const [value, setValue] = React.useState(0);
+  const [value, setValue] = useState(0);
   const { status } = useFormikContext<AddRepositoriesFormValues>();
 
-  const handleChange = (_event: React.ChangeEvent<{}>, newValue: number) => {
+  const handleChange = (_event: ChangeEvent<{}>, newValue: number) => {
     setValue(newValue);
   };
 

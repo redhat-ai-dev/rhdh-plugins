@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Backstage Authors
+ * Copyright Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,11 @@ import React from 'react';
 import { Link } from '@backstage/core-components';
 import { useRouteRef } from '@backstage/core-plugin-api';
 
-import DotIcon from '@material-ui/icons/FiberManualRecord';
+import { Box } from '@material-ui/core';
+import CheckCircleOutlined from '@mui/icons-material/CheckCircleOutlined';
+import ErrorOutlineOutlined from '@mui/icons-material/ErrorOutlineOutlined';
+import HourglassEmptyOutlined from '@mui/icons-material/HourglassEmptyOutlined';
+import CircularProgress from '@mui/material/CircularProgress';
 
 import {
   capitalize,
@@ -43,16 +47,49 @@ export const WorkflowInstanceStatusIndicator = ({
     return VALUE_UNAVAILABLE;
   }
 
+  let icon: React.ReactNode;
+  let title: string = '';
+  switch (status) {
+    case ProcessInstanceStatusDTO.Active:
+      icon = <CircularProgress size="1.15rem" className={iconColor} />;
+      title = 'Running';
+      break;
+    case ProcessInstanceStatusDTO.Completed:
+      icon = <CheckCircleOutlined className={iconColor} />;
+      title = 'Completed';
+      break;
+    case ProcessInstanceStatusDTO.Suspended:
+      icon = <b className={iconColor}>--</b>;
+      title = 'Suspended';
+      break;
+    case ProcessInstanceStatusDTO.Aborted:
+      icon = <b className={iconColor}>--</b>;
+      title = 'Aborted';
+      break;
+    case ProcessInstanceStatusDTO.Error:
+      icon = <ErrorOutlineOutlined className={iconColor} />;
+      title = 'Failed';
+      break;
+    case ProcessInstanceStatusDTO.Pending:
+      icon = <HourglassEmptyOutlined className={iconColor} />;
+      title = 'Pending';
+      break;
+    default:
+      icon = VALUE_UNAVAILABLE;
+      break;
+  }
+
   return (
-    <>
-      <DotIcon style={{ fontSize: '0.75rem' }} className={iconColor} />{' '}
+    <Box display="flex" alignItems="center">
+      {icon}
+      &nbsp;{' '}
       {lastRunId ? (
         <Link to={workflowInstanceLink({ instanceId: lastRunId })}>
-          {capitalize(status)}
+          {capitalize(title)}
         </Link>
       ) : (
-        <>{capitalize(status)}</>
+        <>{capitalize(title)}</>
       )}
-    </>
+    </Box>
   );
 };

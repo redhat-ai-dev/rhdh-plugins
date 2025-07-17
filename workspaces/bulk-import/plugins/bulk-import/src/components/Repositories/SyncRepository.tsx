@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-import React from 'react';
-
 import { useApi } from '@backstage/core-plugin-api';
 
 import SyncIcon from '@mui/icons-material/Sync';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
 import { useFormikContext } from 'formik';
 
 import { bulkImportApiRef } from '../../api/BulkImportBackendClient';
@@ -55,7 +54,7 @@ const SyncRepository = ({ data }: SyncRepositoryProps) => {
 
   return (
     <Tooltip title="Refresh">
-      <span data-testid="refresh-repository">
+      <Typography component="span" data-testid="refresh-repository">
         <IconButton
           color="inherit"
           onClick={() => handleClick()}
@@ -64,7 +63,7 @@ const SyncRepository = ({ data }: SyncRepositoryProps) => {
         >
           <SyncIcon />
         </IconButton>
-      </span>
+      </Typography>
     </Tooltip>
   );
 };

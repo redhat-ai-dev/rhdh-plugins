@@ -1,5 +1,5 @@
 /*
- * Copyright Red Hat, Inc.
+ * Copyright The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 import { marketplacePlugin } from './plugin';
 
-describe('marketplace', () => {
+describe('extensions', () => {
   it('should export plugin', () => {
     expect(marketplacePlugin).toBeDefined();
   });

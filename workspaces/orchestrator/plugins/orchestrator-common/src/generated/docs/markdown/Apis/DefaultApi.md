@@ -14,6 +14,7 @@ All URIs are relative to *http://localhost*
 | [**getWorkflowSourceById**](DefaultApi.md#getWorkflowSourceById) | **GET** /v2/workflows/{workflowId}/source |  |
 | [**getWorkflowStatuses**](DefaultApi.md#getWorkflowStatuses) | **GET** /v2/workflows/instances/statuses | Get workflow status list |
 | [**getWorkflowsOverview**](DefaultApi.md#getWorkflowsOverview) | **POST** /v2/workflows/overview |  |
+| [**pingWorkflowServiceById**](DefaultApi.md#pingWorkflowServiceById) | **GET** /v2/workflows/{workflowId}/pingWorkflowService |  |
 | [**retriggerInstance**](DefaultApi.md#retriggerInstance) | **POST** /v2/workflows/{workflowId}/{instanceId}/retrigger | Retrigger an instance |
 
 
@@ -46,7 +47,7 @@ No authorization required
 
 <a name="executeWorkflow"></a>
 # **executeWorkflow**
-> ExecuteWorkflowResponseDTO executeWorkflow(workflowId, ExecuteWorkflowRequestDTO, businessKey)
+> ExecuteWorkflowResponseDTO executeWorkflow(workflowId, ExecuteWorkflowRequestDTO)
 
 Execute a workflow
 
@@ -58,7 +59,6 @@ Execute a workflow
 |------------- | ------------- | ------------- | -------------|
 | **workflowId** | **String**| ID of the workflow to execute | [default to null] |
 | **ExecuteWorkflowRequestDTO** | [**ExecuteWorkflowRequestDTO**](../Models/ExecuteWorkflowRequestDTO.md)|  | |
-| **businessKey** | **String**| ID of the parent workflow | [optional] [default to null] |
 
 ### Return type
 
@@ -75,7 +75,7 @@ No authorization required
 
 <a name="getInstanceById"></a>
 # **getInstanceById**
-> AssessedProcessInstanceDTO getInstanceById(instanceId, includeAssessment)
+> ProcessInstanceDTO getInstanceById(instanceId)
 
 Get Workflow Instance by ID
 
@@ -86,11 +86,10 @@ Get Workflow Instance by ID
 |Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **instanceId** | **String**| ID of the workflow instance | [default to null] |
-| **includeAssessment** | **Boolean**| Whether to include assessment | [optional] [default to false] |
 
 ### Return type
 
-[**AssessedProcessInstanceDTO**](../Models/AssessedProcessInstanceDTO.md)
+[**ProcessInstanceDTO**](../Models/ProcessInstanceDTO.md)
 
 ### Authorization
 
@@ -287,6 +286,33 @@ No authorization required
 ### HTTP request headers
 
 - **Content-Type**: application/json
+- **Accept**: application/json
+
+<a name="pingWorkflowServiceById"></a>
+# **pingWorkflowServiceById**
+> Boolean pingWorkflowServiceById(workflowId)
+
+
+
+    Returns true if the workflow service is up for the given workflow ID.
+
+### Parameters
+
+|Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **workflowId** | **String**| ID of the workflow to fetch | [default to null] |
+
+### Return type
+
+**Boolean**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
 - **Accept**: application/json
 
 <a name="retriggerInstance"></a>

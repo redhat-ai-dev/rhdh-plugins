@@ -1,5 +1,5 @@
 /*
- * Copyright Red Hat, Inc.
+ * Copyright The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import React from 'react';
 import { Navigate, Route } from 'react-router-dom';
 import { apiDocsPlugin, ApiExplorerPage } from '@backstage/plugin-api-docs';
 import {
@@ -26,6 +25,8 @@ import {
   CatalogImportPage,
   catalogImportPlugin,
 } from '@backstage/plugin-catalog-import';
+import { RbacPage } from '@backstage-community/plugin-rbac';
+
 import { ScaffolderPage, scaffolderPlugin } from '@backstage/plugin-scaffolder';
 import { orgPlugin } from '@backstage/plugin-org';
 import { SearchPage } from '@backstage/plugin-search';
@@ -47,9 +48,14 @@ import { AppRouter, FlatRoutes } from '@backstage/core-app-api';
 import { CatalogGraphPage } from '@backstage/plugin-catalog-graph';
 import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
+import { githubAuthApiRef } from '@backstage/core-plugin-api';
 
 import { getAllThemes } from '@red-hat-developer-hub/backstage-plugin-theme';
-import { MarketplacePage } from '@red-hat-developer-hub/backstage-plugin-marketplace';
+
+import {
+  InstallationContextProvider,
+  DynamicMarketplacePluginRouter as Marketplace,
+} from '@red-hat-developer-hub/backstage-plugin-marketplace';
 
 import { apis } from './apis';
 import { entityPage } from './components/catalog/EntityPage';
@@ -76,7 +82,21 @@ const app = createApp({
     });
   },
   components: {
-    SignInPage: props => <SignInPage {...props} auto providers={['guest']} />,
+    SignInPage: props => (
+      <SignInPage
+        {...props}
+        auto
+        providers={[
+          'guest',
+          {
+            id: 'github-auth-provider',
+            title: 'GitHub',
+            message: 'Sign in using GitHub',
+            apiRef: githubAuthApiRef,
+          },
+        ]}
+      />
+    ),
   },
   themes: getAllThemes(),
 });
@@ -100,6 +120,7 @@ const routes = (
         <ReportIssue />
       </TechDocsAddons>
     </Route>
+    <Route path="/rbac" element={<RbacPage />} />;
     <Route path="/create" element={<ScaffolderPage />} />
     <Route path="/api-docs" element={<ApiExplorerPage />} />
     <Route
@@ -115,7 +136,14 @@ const routes = (
     </Route>
     <Route path="/settings" element={<UserSettingsPage />} />
     <Route path="/catalog-graph" element={<CatalogGraphPage />} />
-    <Route path="/marketplace" element={<MarketplacePage />} />
+    <Route
+      path="/extensions"
+      element={
+        <InstallationContextProvider>
+          <Marketplace />
+        </InstallationContextProvider>
+      }
+    />
   </FlatRoutes>
 );
 

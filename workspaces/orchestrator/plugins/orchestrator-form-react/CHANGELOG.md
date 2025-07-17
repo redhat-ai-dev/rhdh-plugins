@@ -1,5 +1,70 @@
 ### Dependencies
 
+## 1.6.4
+
+### Patch Changes
+
+- Updated dependencies [ff0f69e]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.28.4
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-form-api@1.6.4
+
+## 1.6.3
+
+### Patch Changes
+
+- Updated dependencies [a3df181]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.28.3
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-form-api@1.6.3
+
+## 1.6.2
+
+### Patch Changes
+
+- Updated dependencies [da78550]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.28.2
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-form-api@1.6.2
+
+## 1.6.1
+
+### Patch Changes
+
+- Updated dependencies [a9a6095]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.28.1
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-form-api@1.6.1
+
+## 1.6.0
+
+### Minor Changes
+
+- 53f3ffb: implemented authorization widget for enabling specifying the required auth providers in the schema so the UI can pick it up from there and forward to workflow execution
+
+### Patch Changes
+
+- Updated dependencies [53f3ffb]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-form-api@1.6.0
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-common@1.28.0
+
+## 1.5.0
+
+### Minor Changes
+
+- 78e3ee6: Added backstage-plugin-orchestrator-form-widgets plugin hosting default set of RJSF form widgets provided along the Orchestrator. Includes the SchemaUpdater widget capable of downloading JSON schema chunks and modifying the RJSF form on the fly.
+- fc9ce7c: Backstage version bump to v1.37.1
+
+### Patch Changes
+
+- 2f33284: Update kie-tools, @janus/cli and Backstage supported version to the most recent ones.
+- a9e5f32: Updated dependency `@openapitools/openapi-generator-cli` to `2.20.0`.
+  Updated dependency `prettier` to `3.5.3`.
+  Updated dependency `@redhat-developer/red-hat-developer-hub-theme` to `0.5.1`.
+  Updated dependency `@red-hat-developer-hub/backstage-plugin-theme` to `^0.6.0`.
+  Updated dependency `@janus-idp/cli` to `3.5.0`.
+- Updated dependencies [78e3ee6]
+- Updated dependencies [2f33284]
+- Updated dependencies [a9e5f32]
+- Updated dependencies [fc9ce7c]
+  - @red-hat-developer-hub/backstage-plugin-orchestrator-form-api@1.5.0
+
 ## 1.4.6
 
 ### Patch Changes
@@ -50,7 +115,6 @@
   Update to Backstage 1.32.5
 
 - 67f466a: Resolved the following issues:
-
   1. enabled validation using customValidate, and replaced extraErrors with getExtraErrors, since extraErrors is supposed to be populated when running onSubmit, and that isn't exposed to the user. Added busy handling while calling getExtraErrors.
   2. moved FormComponent to a separate component, to avoid buggy behavior and code smells with component generated in a different component.
   3. update formData on each change instead of when moving to next step, to avoid data being cleared.

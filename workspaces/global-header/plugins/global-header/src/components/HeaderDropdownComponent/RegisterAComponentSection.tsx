@@ -13,11 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import React from 'react';
-import MenuSection from './MenuSection';
-import { HeaderLink } from '../HeaderLinkComponent/HeaderLink';
-import { ComponentType } from '../../types';
+import type { ComponentType } from 'react';
+import { MenuSection } from './MenuSection';
+import { MenuItemLink } from '../MenuItemLink/MenuItemLink';
 
 /**
  * Register A Component Section properties
@@ -38,11 +36,11 @@ export const RegisterAComponentSection = ({
       hideDivider={hideDivider}
       items={[
         {
-          type: ComponentType.LINK,
           label: 'Register a component',
+          subLabel: 'Import it to the catalog page',
           link: '/catalog-import',
           icon: 'category',
-          Component: HeaderLink as React.ComponentType,
+          Component: MenuItemLink as ComponentType,
         },
       ]}
       handleClose={handleClose}

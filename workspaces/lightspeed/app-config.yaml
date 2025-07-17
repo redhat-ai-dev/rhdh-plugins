@@ -1,5 +1,5 @@
 app:
-  title: RHDH Lightspeed
+  title: Developer Lightspeed
   baseUrl: http://localhost:3000
 
 organization:
@@ -67,8 +67,7 @@ auth:
     # See https://backstage.io/docs/auth/guest/provider
     guest: {}
 
-scaffolder:
-  {}
+scaffolder: {}
   # see https://backstage.io/docs/features/software-templates/configuration for software template options
 
 catalog:
