@@ -78,4 +78,5 @@ backend.add(
 
 backend.add(import('@backstage/plugin-auth-backend-module-github-provider'));
 
+backend.add(import('@red-hat-developer-hub/informer-ts-via-cursor-backend'));
 backend.start();
