@@ -17,7 +17,6 @@ import {
   coreServices,
   createBackendPlugin,
 } from '@backstage/backend-plugin-api';
-import { catalogServiceRef } from '@backstage/plugin-catalog-node';
 import { setupInformer } from './services/InformerService';
 
 /**
@@ -31,12 +30,8 @@ export const informerTsViaGeminiPlugin = createBackendPlugin({
     env.registerInit({
       deps: {
         logger: coreServices.logger,
-        auth: coreServices.auth,
-        httpAuth: coreServices.httpAuth,
-        httpRouter: coreServices.httpRouter,
-        catalog: catalogServiceRef,
       },
-      async init({ logger, auth, httpAuth, httpRouter, catalog }) {
+      async init({ logger }) {
         // Set up the Kubernetes informer
         setupInformer().catch(error => {
           logger.error('Failed to set up informer:', error);

@@ -10740,7 +10740,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@red-hat-developer-hub/backstage-plugin-informer-ts-via-gemini-backend@workspace:plugins/informer-ts-via-gemini-backend":
+"@red-hat-developer-hub/backstage-plugin-informer-ts-via-gemini-backend@workspace:^, @red-hat-developer-hub/backstage-plugin-informer-ts-via-gemini-backend@workspace:plugins/informer-ts-via-gemini-backend":
   version: 0.0.0-use.local
   resolution: "@red-hat-developer-hub/backstage-plugin-informer-ts-via-gemini-backend@workspace:plugins/informer-ts-via-gemini-backend"
   dependencies:
@@ -15997,6 +15997,7 @@ __metadata:
     "@backstage/plugin-techdocs-backend": ^2.0.0
     "@red-hat-developer-hub/backstage-plugin-ai-experience-backend": "workspace:^"
     "@red-hat-developer-hub/backstage-plugin-catalog-backend-module-model-catalog": "workspace:^"
+    "@red-hat-developer-hub/backstage-plugin-informer-ts-via-gemini-backend": "workspace:^"
     app: "link:../app"
     better-sqlite3: ^9.0.0
     node-gyp: ^10.0.0
