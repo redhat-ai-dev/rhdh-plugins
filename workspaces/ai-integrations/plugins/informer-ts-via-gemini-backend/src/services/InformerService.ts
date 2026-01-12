@@ -15,6 +15,7 @@
  */
 
 import * as k8s from '@kubernetes/client-node';
+import { callBackstagePrinters, NormalizerFormat } from './Kfmr';
 
 const group = 'serving.kserve.io';
 const version = 'v1beta1';
@@ -287,9 +288,20 @@ async function processKFMR(
                 continue;
               }
 
-              // TODO: Call backstage printers (Go line 497)
-              // await callBackstagePrinters(config.defaultOwner, config.defaultLifecycle,
-              //   rm, mv, mas, null, is, kfmr, config.format);
+              // Call backstage printers (Go line 497)
+              const catalogData = await callBackstagePrinters(
+                config.defaultOwner,
+                config.defaultLifecycle,
+                rm,
+                mv,
+                mas,
+                // null,
+                is,
+                NormalizerFormat.CatalogInfoYamlFormat,
+              );
+              console.log(
+                `processKFMR: Generated catalog data (${catalogData.length} bytes)`,
+              );
 
               // Build import key (Go line 515)
               const [importKey] = buildImportKeyAndURI(
@@ -432,9 +444,20 @@ async function processKFMR(
               continue;
             }
 
-            // TODO: Call backstage printers (Go line 585)
-            // await callBackstagePrinters(config.defaultOwner, config.defaultLifecycle,
-            //   rm, mv, mas, kfmrIS, is, kfmr, config.format);
+            // Call backstage printers (Go line 585)
+            const catalogData = await callBackstagePrinters(
+              config.defaultOwner,
+              config.defaultLifecycle,
+              rm,
+              mv,
+              mas,
+              // kfmrIS,
+              is,
+              NormalizerFormat.CatalogInfoYamlFormat,
+            );
+            console.log(
+              `processKFMR: Generated catalog data (${catalogData.length} bytes)`,
+            );
 
             // Build import key (Go line 602)
             const [importKey] = buildImportKeyAndURI(
