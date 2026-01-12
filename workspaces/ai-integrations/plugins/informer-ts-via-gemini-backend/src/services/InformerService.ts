@@ -21,6 +21,18 @@ const group = 'serving.kserve.io';
 const version = 'v1beta1';
 const plural = 'inferenceservices';
 
+// Model card metadata interface (from server.go line 30-35)
+interface ModelCardMetadata {
+  content: string;
+  lastUpdateTimeSinceEpoch: string;
+  updateCount: number;
+  needToUpdate: boolean;
+}
+
+// Global model cards storage (from server.go line 23)
+// This stores model card content indexed by modelCardKey
+const modelCards = new Map<string, ModelCardMetadata>();
+
 // Constants for condition types (matching Go constants from bridgerest package)
 const INF_SVC_IngressReady_CONDITION = 'IngressReady';
 const INF_SVC_PredictorReady_CONDITION = 'PredictorReady';
@@ -591,7 +603,7 @@ async function reconcileInferenceService(
   let importKey = '';
   let lastUpdateTimeSinceEpoch = '';
   let modelCardKey = '';
-  // let modelCard: string | undefined;
+  let modelCard: string | undefined;
   let normalizerType = NormalizerType.KubeflowNormalizer;
 
   // Step 1: Process KFMR if routes are available (line 365-369 in Go)
@@ -602,7 +614,7 @@ async function reconcileInferenceService(
       importKey = result.importKey;
       lastUpdateTimeSinceEpoch = result.lastUpdateTimeSinceEpoch;
       modelCardKey = result.modelCardKey;
-      // modelCard = result.modelCard;
+      modelCard = result.modelCard;
     }
   }
 
@@ -639,8 +651,7 @@ async function reconcileInferenceService(
     normalizerType,
     lastUpdateTimeSinceEpoch,
     modelCardKey,
-    // modelCard,
-    config,
+    modelCard,
   );
 
   console.log(`Successfully reconciled InferenceService: ${namespace}/${name}`);
@@ -652,29 +663,46 @@ async function processBWriter(
   normalizerType: NormalizerType,
   lastUpdateTimeSinceEpoch: string,
   modelCardKey: string,
-  // modelCard: string | undefined,
-  config: ReconcilerConfig,
+  modelCard: string | undefined,
 ): Promise<void> {
   console.log(
     `processBWriter - key: ${importKey}, type: ${normalizerType}, epoch: ${lastUpdateTimeSinceEpoch}, modelCardKey: ${modelCardKey}`,
   );
 
-  // TODO: Implement storage client call
-  // This would make an HTTP request to the storage service
-  // const response = await storageClient.upsertModel(
-  //   importKey,
-  //   normalizerType,
-  //   lastUpdateTimeSinceEpoch,
-  //   modelCardKey,
-  //   modelCard,
-  //   bufferData
-  // );
-  //
-  // if (response.status !== 200 && response.status !== 201) {
-  //   throw new Error(`Storage returned status ${response.status}: ${response.message}`);
-  // }
+  // Handle model card storage (converted from server.go lines 219-234)
+  if (modelCardKey && modelCardKey.length > 0) {
+    const existingMcm = modelCards.get(modelCardKey);
 
-  console.log(`Would send to storage at: ${config.storageURL}`);
+    if (!existingMcm) {
+      // Create new model card metadata entry
+      const mcm: ModelCardMetadata = {
+        content: modelCard || '',
+        lastUpdateTimeSinceEpoch: lastUpdateTimeSinceEpoch,
+        needToUpdate: true,
+        updateCount: 0,
+      };
+      modelCards.set(modelCardKey, mcm);
+      console.log(
+        `processBWriter: Created new model card entry for key ${modelCardKey}`,
+      );
+    } else {
+      // Update existing model card metadata if timestamp changed
+      if (existingMcm.lastUpdateTimeSinceEpoch !== lastUpdateTimeSinceEpoch) {
+        existingMcm.lastUpdateTimeSinceEpoch = lastUpdateTimeSinceEpoch;
+        existingMcm.content = modelCard || existingMcm.content;
+        existingMcm.needToUpdate = true;
+        existingMcm.updateCount = 0;
+        modelCards.set(modelCardKey, existingMcm);
+        console.log(
+          `processBWriter: Updated model card entry for key ${modelCardKey} (timestamp changed)`,
+        );
+      } else {
+        console.log(
+          `processBWriter: Model card for key ${modelCardKey} already up to date`,
+        );
+      }
+    }
+  }
 }
 
 // Helper function to post current key set to storage
