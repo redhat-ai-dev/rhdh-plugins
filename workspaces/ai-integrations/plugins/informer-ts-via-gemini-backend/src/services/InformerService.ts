@@ -190,20 +190,39 @@ function buildImportKeyAndURI(
 }
 
 // Helper function to check if KServe InferenceService maps to KFMR model
-// This is a placeholder for the Go util.KServeInferenceServiceMapping function
+// Converted from Go util.KServeInferenceServiceMapping (utils.go line 123)
 function kserveInferenceServiceMapping(
   registeredModelId: string,
   modelVersionId: string,
   is: InferenceService,
 ): boolean {
-  // TODO: Implement actual mapping logic
-  // This would check if the InferenceService name/labels match the model IDs
-  // For now, do a simple name match
-  const rmName = sanitizeName(registeredModelId);
-  const mvName = sanitizeName(modelVersionId);
-  const isName = sanitizeName(is.metadata.name);
+  // Check if labels exist (Go line 124-126)
+  if (!is.metadata.labels) {
+    return false;
+  }
 
-  return isName.includes(rmName) || isName.includes(mvName);
+  // Check registered model ID label (Go line 128-135)
+  const rmVal = is.metadata.labels[INF_SVC_RM_ID_LABEL];
+  if (!rmVal) {
+    return false;
+  }
+
+  if (registeredModelId.trim() !== rmVal.trim()) {
+    return false;
+  }
+
+  // Check model version ID label (Go line 137-144)
+  const mvVal = is.metadata.labels[INF_SVC_MV_ID_LABEL];
+  if (!mvVal) {
+    return false;
+  }
+
+  if (modelVersionId.trim() !== mvVal.trim()) {
+    return false;
+  }
+
+  // All checks passed (Go line 146)
+  return true;
 }
 
 // Process KFMR (KubeFlow Model Registry) integration
