@@ -16,6 +16,7 @@
 
 import * as k8s from '@kubernetes/client-node';
 import { callBackstagePrinters, NormalizerFormat } from './Kfmr';
+import { callBackstagePrinters as callKServeBackstagePrinters } from './KServe';
 
 const group = 'serving.kserve.io';
 const version = 'v1beta1';
@@ -653,11 +654,16 @@ async function reconcileInferenceService(
 
     // Call backstage printers (equivalent to kserve.CallBackstagePrinters in Go)
     console.log(`Calling backstage printers for ${namespace}/${name}`);
-    // TODO: Implement CallBackstagePrinters logic
-    // const catalogData = await callBackstagePrinters(namespace, config.defaultLifecycle, is, config.format);
+    const catalogData = await callKServeBackstagePrinters(
+      config.defaultOwner,
+      config.defaultLifecycle,
+      is,
+      NormalizerFormat.CatalogInfoYamlFormat,
+    );
+    console.log(`Generated KServe catalog data (${catalogData.length} bytes)`);
 
     // Build import key
-    [importKey] = buildImportKeyAndURI(namespace, name); // , config.format);
+    [importKey] = buildImportKeyAndURI(namespace, name);
     console.log(`Built importKey: ${importKey}`);
   }
 

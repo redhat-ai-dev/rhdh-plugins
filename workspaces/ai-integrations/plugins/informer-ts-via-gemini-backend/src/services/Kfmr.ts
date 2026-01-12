@@ -47,6 +47,7 @@ export const PropertyKeys = {
   UsageKey: 'usage',
   HomepageURLKey: 'homepage-url',
   APISpecKey: 'api-spec',
+  DescriptionKey: 'description',
 };
 
 // Metadata value interface (from openapi package)
