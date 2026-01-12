@@ -74,9 +74,84 @@ interface InferenceService {
   status?: InferenceServiceStatus;
 }
 
+// KFMR (KubeFlow Model Registry) related interfaces
+interface RegisteredModel {
+  id?: string;
+  name: string;
+  lastUpdateTimeSinceEpoch?: string;
+  description?: string;
+  customProperties?: { [key: string]: any };
+}
+
+interface ModelVersion {
+  id?: string;
+  name: string;
+  lastUpdateTimeSinceEpoch?: string;
+  registeredModelId?: string;
+  description?: string;
+  customProperties?: { [key: string]: any };
+}
+
+interface ModelArtifact {
+  id?: string;
+  name?: string;
+  modelVersionId?: string;
+  modelSourceClass?: string;
+  modelSourceGroup?: string;
+  modelSourceName?: string;
+  uri?: string;
+  customProperties?: { [key: string]: any };
+}
+
+interface KFMRInferenceService {
+  id?: string;
+  name?: string;
+  registeredModelId?: string;
+  modelVersionId?: string;
+  servingEnvironmentId?: string;
+  desiredState?: string;
+  runtime?: string;
+  customProperties?: { [key: string]: any };
+}
+
+interface ServingEnvironment {
+  id?: string;
+  name?: string;
+  description?: string;
+  customProperties?: { [key: string]: any };
+}
+
+// KFMR Client wrapper interface
+interface KFMRClient {
+  rootRegistryURL: string;
+  rootCatalogURL?: string;
+  token: string;
+  listRegisteredModels(): Promise<RegisteredModel[]>;
+  listInferenceServices(): Promise<KFMRInferenceService[]>;
+  listModelVersions(registeredModelId: string): Promise<ModelVersion[]>;
+  listModelArtifacts(modelVersionId: string): Promise<ModelArtifact[]>;
+  getServingEnvironment(
+    servingEnvironmentId: string,
+  ): Promise<ServingEnvironment>;
+  getModelVersion(modelVersionId: string): Promise<ModelVersion>;
+  getModelCard(
+    modelSourceClass: string,
+    modelSourceGroup: string,
+    modelSourceName: string,
+  ): Promise<string | undefined>;
+}
+
+// Result type for processKFMR
+interface ProcessKFMRResult {
+  importKey: string;
+  lastUpdateTimeSinceEpoch: string;
+  modelCardKey: string;
+  modelCard?: string;
+}
+
 // Configuration (these would typically come from environment variables)
 interface ReconcilerConfig {
-  kfmrRegistryRoutes: Map<string, any>; // KFMR routes
+  kfmrClients: Map<string, KFMRClient>; // KFMR clients keyed by registry identifier
   storageURL: string;
   format: string;
   defaultLifecycle: string;
@@ -99,6 +174,332 @@ function buildImportKeyAndURI(
   const importKey = `${sanitizedNs}/${sanitizedName}`;
   const uri = `/models/${importKey}`;
   return [importKey, uri];
+}
+
+// Helper function to check if KServe InferenceService maps to KFMR model
+// This is a placeholder for the Go util.KServeInferenceServiceMapping function
+function kserveInferenceServiceMapping(
+  registeredModelId: string,
+  modelVersionId: string,
+  is: InferenceService,
+): boolean {
+  // TODO: Implement actual mapping logic
+  // This would check if the InferenceService name/labels match the model IDs
+  // For now, do a simple name match
+  const rmName = sanitizeName(registeredModelId);
+  const mvName = sanitizeName(modelVersionId);
+  const isName = sanitizeName(is.metadata.name);
+
+  return isName.includes(rmName) || isName.includes(mvName);
+}
+
+// Process KFMR (KubeFlow Model Registry) integration
+// Converted from Go processKFMR method (controller.go line 442)
+async function processKFMR(
+  namespace: string,
+  name: string,
+  is: InferenceService,
+  config: ReconcilerConfig,
+): Promise<ProcessKFMRResult | null> {
+  console.log(`processKFMR: Processing ${namespace}/${name}`);
+
+  // Check if KFMR is configured (Go line 444-448)
+  if (config.kfmrClients.size === 0) {
+    console.log(
+      `processKFMR: No KFMR routes configured for ${namespace}/${name}`,
+    );
+    return null;
+  }
+
+  console.log(`processKFMR: Have KFMR clients for ${namespace}/${name}`);
+  const replacer = (str: string) => str.replace(/ /g, ''); // Go line 451
+
+  const kfmrRMs: RegisteredModel[] = [];
+  const kfmrISs: KFMRInferenceService[] = [];
+
+  // Loop over KFMR clients (Go line 455)
+  for (const [key, kfmr] of config.kfmrClients.entries()) {
+    try {
+      // List registered models (Go line 456)
+      const rms = await kfmr.listRegisteredModels();
+      console.log(
+        `processKFMR: Found ${rms.length} registered models with registry ${key}`,
+      );
+      kfmrRMs.push(...rms);
+
+      // List inference services (Go line 464)
+      const iss = await kfmr.listInferenceServices();
+      console.log(
+        `processKFMR: Found ${iss.length} inference services from ${key}`,
+      );
+      kfmrISs.push(...iss);
+    } catch (error) {
+      console.error(
+        `processKFMR: Error listing models or services for ${namespace}/${name}:`,
+        error,
+      );
+      continue;
+    }
+
+    // Path 1: No KubeFlow inference services - match by model/version name (Go line 472)
+    if (kfmrISs.length === 0) {
+      console.log(
+        `processKFMR: No KubeFlow inference services for registry ${key}`,
+      );
+
+      for (const rm of kfmrRMs) {
+        if (!rm.id) continue;
+
+        try {
+          // List model versions (Go line 476)
+          const mvs = await kfmr.listModelVersions(rm.id);
+          console.log(
+            `processKFMR: Found ${mvs.length} model versions for registered model ${rm.id}`,
+          );
+
+          for (const mv of mvs) {
+            if (!mv.id) continue;
+
+            // Check if KServe InferenceService maps to this model version (Go line 482)
+            if (kserveInferenceServiceMapping(rm.id, mv.id, is)) {
+              console.log(
+                `processKFMR: Found mapping between KServe IS and model version ${mv.id}`,
+              );
+
+              // Get model artifacts (Go line 485)
+              let mas: ModelArtifact[] = [];
+              try {
+                mas = await kfmr.listModelArtifacts(mv.id);
+                console.log(
+                  `processKFMR: Found ${mas.length} model artifacts for model version ${mv.id}`,
+                );
+              } catch (error) {
+                console.error(
+                  `processKFMR: Error getting model artifacts for ${mv.id}:`,
+                  error,
+                );
+              }
+
+              if (!mas || mas.length === 0) {
+                console.log(
+                  `processKFMR: No model artifacts, bypassing backstage printers`,
+                );
+                continue;
+              }
+
+              // TODO: Call backstage printers (Go line 497)
+              // await callBackstagePrinters(config.defaultOwner, config.defaultLifecycle,
+              //   rm, mv, mas, null, is, kfmr, config.format);
+
+              // Build import key (Go line 515)
+              const [importKey] = buildImportKeyAndURI(
+                sanitizeName(rm.name),
+                sanitizeName(mv.name),
+              );
+
+              // Get last update timestamp (Go line 516)
+              let lastUpdateTimeSinceEpoch = mv.lastUpdateTimeSinceEpoch || '';
+              if (
+                rm.lastUpdateTimeSinceEpoch &&
+                rm.lastUpdateTimeSinceEpoch > lastUpdateTimeSinceEpoch
+              ) {
+                lastUpdateTimeSinceEpoch = rm.lastUpdateTimeSinceEpoch;
+              }
+
+              // Get model card if catalog URL exists (Go line 522)
+              let modelCard: string | undefined;
+              let modelCardKey = '';
+              if (kfmr.rootCatalogURL) {
+                for (const ma of mas) {
+                  if (
+                    ma.modelSourceClass &&
+                    ma.modelSourceGroup &&
+                    ma.modelSourceName
+                  ) {
+                    try {
+                      modelCard = await kfmr.getModelCard(
+                        ma.modelSourceClass,
+                        ma.modelSourceGroup,
+                        ma.modelSourceName,
+                      );
+                      modelCardKey =
+                        replacer(ma.modelSourceClass) +
+                        replacer(ma.modelSourceGroup) +
+                        replacer(ma.modelSourceName);
+                      console.log(
+                        `processKFMR: Built modelCardKey ${modelCardKey}`,
+                      );
+                      break;
+                    } catch (error) {
+                      console.error(
+                        `processKFMR: Error getting model card:`,
+                        error,
+                      );
+                    }
+                  }
+                }
+              }
+
+              return {
+                importKey,
+                lastUpdateTimeSinceEpoch,
+                modelCardKey,
+                modelCard,
+              };
+            }
+          }
+        } catch (error) {
+          console.error(
+            `processKFMR: Error listing model versions for ${rm.id}:`,
+            error,
+          );
+        }
+      }
+    }
+
+    // Path 2: Found KubeFlow inference services - match with KServe (Go line 542)
+    console.log(
+      `processKFMR: Found KubeFlow inference services while processing KServe IS ${namespace}/${name}`,
+    );
+
+    for (const rm of kfmrRMs) {
+      if (!rm.id) {
+        console.log(
+          `processKFMR: Registered model ${rm.name} has no ID, skipping`,
+        );
+        continue;
+      }
+
+      for (const kfmrIS of kfmrISs) {
+        // Check if KubeFlow IS matches registered model and KServe IS name (Go line 551)
+        if (
+          kfmrIS.id &&
+          kfmrIS.registeredModelId === rm.id &&
+          kfmrIS.name &&
+          is.metadata.name.startsWith(kfmrIS.name)
+        ) {
+          console.log(
+            `processKFMR: KServe IS name match, checking namespace ${namespace} and serving environment ${kfmrIS.servingEnvironmentId}`,
+          );
+
+          if (!kfmrIS.servingEnvironmentId) continue;
+
+          // Get serving environment (Go line 556)
+          let se: ServingEnvironment;
+          try {
+            se = await kfmr.getServingEnvironment(kfmrIS.servingEnvironmentId);
+          } catch (error) {
+            console.error(
+              `processKFMR: Error getting serving environment ${kfmrIS.servingEnvironmentId}:`,
+              error,
+            );
+            continue;
+          }
+
+          // Check if serving environment name matches namespace (Go line 562)
+          if (se.name === namespace) {
+            console.log(`processKFMR: Matched KServe IS ${namespace}/${name}`);
+
+            if (!kfmrIS.modelVersionId) continue;
+
+            // Get model version (Go line 569)
+            let mv: ModelVersion;
+            try {
+              mv = await kfmr.getModelVersion(kfmrIS.modelVersionId);
+            } catch (error) {
+              console.error(
+                `processKFMR: Error getting model version ${kfmrIS.modelVersionId}:`,
+                error,
+              );
+              continue;
+            }
+
+            // Get model artifacts (Go line 574)
+            let mas: ModelArtifact[] = [];
+            try {
+              mas = await kfmr.listModelArtifacts(kfmrIS.modelVersionId);
+            } catch (error) {
+              console.error(
+                `processKFMR: Error getting model artifacts for ${kfmrIS.modelVersionId}:`,
+                error,
+              );
+            }
+
+            if (!mv || !mas || mas.length === 0) {
+              console.log(
+                `processKFMR: Missing model version or artifacts, bypassing backstage printers`,
+              );
+              continue;
+            }
+
+            // TODO: Call backstage printers (Go line 585)
+            // await callBackstagePrinters(config.defaultOwner, config.defaultLifecycle,
+            //   rm, mv, mas, kfmrIS, is, kfmr, config.format);
+
+            // Build import key (Go line 602)
+            const [importKey] = buildImportKeyAndURI(
+              sanitizeName(rm.name),
+              sanitizeName(mv.name),
+            );
+
+            // Get last update timestamp (Go line 603)
+            let lastUpdateTimeSinceEpoch = mv.lastUpdateTimeSinceEpoch || '';
+            if (
+              rm.lastUpdateTimeSinceEpoch &&
+              rm.lastUpdateTimeSinceEpoch > lastUpdateTimeSinceEpoch
+            ) {
+              lastUpdateTimeSinceEpoch = rm.lastUpdateTimeSinceEpoch;
+            }
+
+            // Get model card if catalog URL exists (Go line 609)
+            let modelCard: string | undefined;
+            let modelCardKey = '';
+            if (kfmr.rootCatalogURL) {
+              for (const ma of mas) {
+                if (
+                  ma.modelSourceClass &&
+                  ma.modelSourceGroup &&
+                  ma.modelSourceName
+                ) {
+                  try {
+                    modelCard = await kfmr.getModelCard(
+                      ma.modelSourceClass,
+                      ma.modelSourceGroup,
+                      ma.modelSourceName,
+                    );
+                    modelCardKey = ma.modelSourceGroup + ma.modelSourceName;
+                    console.log(
+                      `processKFMR: Built modelCardKey ${modelCardKey}`,
+                    );
+                    break;
+                  } catch (error) {
+                    console.error(
+                      `processKFMR: Error getting model card:`,
+                      error,
+                    );
+                  }
+                }
+              }
+            }
+
+            console.log(
+              `processKFMR: KServe IS ${namespace}/${name} returning importKey ${importKey}`,
+            );
+            return {
+              importKey,
+              lastUpdateTimeSinceEpoch,
+              modelCardKey,
+              modelCard,
+            };
+          }
+        }
+      }
+    }
+  }
+
+  // No match found, but not an error - caller can process as KServe-only (Go line 633)
+  console.log(`processKFMR: No KFMR match for ${namespace}/${name}`);
+  return null;
 }
 
 // Helper function to check if InferenceService status is ready
@@ -165,24 +566,21 @@ async function reconcileInferenceService(
 
   // Variables to track the reconciliation state
   let importKey = '';
-  const lastUpdateTimeSinceEpoch = '';
-  const modelCardKey = '';
+  let lastUpdateTimeSinceEpoch = '';
+  let modelCardKey = '';
   // let modelCard: string | undefined;
   let normalizerType = NormalizerType.KubeflowNormalizer;
 
   // Step 1: Process KFMR if routes are available (line 365-369 in Go)
-  if (config.kfmrRegistryRoutes.size > 0) {
+  if (config.kfmrClients.size > 0) {
     console.log(`Processing KFMR for ${namespace}/${name}`);
-    // TODO: Implement processKFMR logic
-    // This would call the KFMR API to get model registry information
-    // For now, we'll skip this and assume KServe-only mode
-    // const result = await processKFMR(namespace, name, is, config);
-    // if (result) {
-    //   importKey = result.importKey;
-    //   lastUpdateTimeSinceEpoch = result.lastUpdateTimeSinceEpoch;
-    //   modelCardKey = result.modelCardKey;
-    //   modelCard = result.modelCard;
-    // }
+    const result = await processKFMR(namespace, name, is, config);
+    if (result) {
+      importKey = result.importKey;
+      lastUpdateTimeSinceEpoch = result.lastUpdateTimeSinceEpoch;
+      modelCardKey = result.modelCardKey;
+      // modelCard = result.modelCard;
+    }
   }
 
   // Step 2: Handle KServe-only scenario if no importKey (lines 371-408 in Go)
@@ -292,9 +690,9 @@ async function innerStart(
   const keys: string[] = [];
 
   // Step 1: Process KFMR registries (lines 658-794 in Go)
-  if (config.kfmrRegistryRoutes.size > 0) {
+  if (config.kfmrClients.size > 0) {
     console.log(
-      `innerStart: Processing ${config.kfmrRegistryRoutes.size} KFMR registries`,
+      `innerStart: Processing ${config.kfmrClients.size} KFMR registries`,
     );
 
     // TODO: Implement KFMR processing loop
@@ -337,7 +735,7 @@ async function innerStart(
       let skip = false;
 
       // Skip InferenceServices managed by KubeFlow (lines 803-816 in Go)
-      if (is.metadata.labels && config.kfmrRegistryRoutes.size > 0) {
+      if (is.metadata.labels && config.kfmrClients.size > 0) {
         for (const labelKey of Object.keys(is.metadata.labels)) {
           if (
             labelKey === INF_SVC_MV_ID_LABEL ||
@@ -390,7 +788,7 @@ export const setupInformer = async () => {
 
   // Initialize configuration from environment variables
   const config: ReconcilerConfig = {
-    kfmrRegistryRoutes: new Map(), // TODO: Initialize from env var MODEL_REGISTRY_ROUTE
+    kfmrClients: new Map(), // TODO: Initialize from env var MODEL_REGISTRY_ROUTE and create KFMRClient instances
     storageURL: process.env.STORAGE_URL || 'http://localhost:7070',
     format: process.env.FORMAT || 'catalog-info.yaml',
     defaultLifecycle: process.env.LIFECYCLE || 'production',
@@ -402,7 +800,7 @@ export const setupInformer = async () => {
     format: config.format,
     defaultLifecycle: config.defaultLifecycle,
     defaultOwner: config.defaultOwner,
-    kfmrRegistryRoutes: config.kfmrRegistryRoutes.size,
+    kfmrClients: config.kfmrClients.size,
   });
 
   const listFn: k8s.ListPromise<InferenceService> = () =>
