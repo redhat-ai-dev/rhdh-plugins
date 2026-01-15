@@ -16,7 +16,7 @@
 
 // Converted from kserve.go in model-catalog-bridge
 
-import { NormalizerFormat, PropertyKeys } from './Kfmr';
+import { PropertyKeys } from './Kfmr';
 
 // Annotation prefix (from brdgtypes package)
 const ANNOTATION_PREFIX = 'model-catalog-bridge.ai.redhat.com/';
@@ -91,6 +91,49 @@ export interface KServeInferenceService {
       };
     };
   };
+}
+
+// Model catalog interfaces
+export interface KServeModel {
+  name: string;
+  owner: string;
+  lifecycle: string;
+  description: string;
+  tags: string[];
+  artifactLocationURL?: string;
+  ethics?: string;
+  howToUseURL?: string;
+  support?: string;
+  training?: string;
+  usage?: string;
+  license?: string;
+  annotations: { [key: string]: string };
+}
+
+export interface KServeModelServerAPI {
+  type: string;
+  url: string;
+  spec: string;
+  tags: string[];
+  annotations: { [key: string]: string };
+}
+
+export interface KServeModelServer {
+  name: string;
+  owner: string;
+  lifecycle: string;
+  description: string;
+  homepageURL?: string;
+  usage?: string;
+  tags: string[];
+  authentication: boolean;
+  api: KServeModelServerAPI;
+  annotations: { [key: string]: string };
+}
+
+export interface KServeModelCatalog {
+  models: KServeModel[];
+  modelServers: KServeModelServer[];
 }
 
 // Helper function: Sanitize name
@@ -277,27 +320,20 @@ export async function callBackstagePrinters(
   owner: string,
   lifecycle: string,
   is: KServeInferenceService,
-  format: NormalizerFormat,
-): Promise<string> {
+): Promise<KServeModelCatalog> {
   console.log(
-    `KServe.callBackstagePrinters: format=${format}, namespace=${is.metadata.namespace}, name=${is.metadata.name}`,
+    `KServe.callBackstagePrinters: namespace=${is.metadata.namespace}, name=${is.metadata.name}`,
   );
 
-  switch (format) {
-    case NormalizerFormat.JsonArrayFormat:
-      return generateJsonArrayFormat(owner, lifecycle, is);
-    case NormalizerFormat.CatalogInfoYamlFormat:
-    default:
-      return generateCatalogInfoYaml(owner, lifecycle, is);
-  }
+  return generateModelCatalog(owner, lifecycle, is);
 }
 
-// Generate JSON array format output (kserve.go line 269-276)
-function generateJsonArrayFormat(
+// Generate model catalog (kserve.go line 269-276)
+function generateModelCatalog(
   owner: string,
   lifecycle: string,
   is: KServeInferenceService,
-): string {
+): KServeModelCatalog {
   const name = `${sanitizeName(is.metadata.namespace)}-${sanitizeName(
     is.metadata.name,
   )}`;
@@ -311,7 +347,7 @@ function generateJsonArrayFormat(
   const techdocsUrl = getStringPropVal(PropertyKeys.TechDocsKey, is);
 
   // Build model object (kserve.go line 646-674)
-  const model = {
+  const model: KServeModel = {
     name: name,
     owner: sanitizeName(ownerValue),
     lifecycle: lifecycleValue,
@@ -331,7 +367,7 @@ function generateJsonArrayFormat(
   };
 
   // Build model server object (kserve.go line 679-698)
-  const modelServer = {
+  const modelServer: KServeModelServer = {
     name: sanitizeName(name),
     owner: sanitizeName(ownerValue),
     lifecycle: lifecycleValue,
@@ -350,114 +386,10 @@ function generateJsonArrayFormat(
     annotations: {},
   };
 
-  const result = {
+  return {
     models: [model],
     modelServers: [modelServer],
   };
-
-  return JSON.stringify(result, null, 2);
-}
-
-// Generate catalog-info.yaml format output (kserve.go line 278-304)
-function generateCatalogInfoYaml(
-  owner: string,
-  lifecycle: string,
-  is: KServeInferenceService,
-): string {
-  const yamlParts: string[] = [];
-
-  // Component (kserve.go line 280)
-  yamlParts.push(generateComponentYaml(owner, lifecycle, is));
-
-  // Resource (kserve.go line 285-293)
-  yamlParts.push(generateResourceYaml(owner, lifecycle, is));
-
-  // API (kserve.go line 296-302)
-  yamlParts.push(generateApiYaml(owner, lifecycle, is));
-
-  return yamlParts.join('\n---\n');
-}
-
-// Generate Component YAML
-function generateComponentYaml(
-  owner: string,
-  lifecycle: string,
-  is: KServeInferenceService,
-): string {
-  const name = getName(is);
-
-  const component = {
-    apiVersion: 'backstage.io/v1alpha1',
-    kind: 'Component',
-    metadata: {
-      name: name,
-      description: getDescription(is),
-      tags: getTags(is),
-      links: getLinks(is),
-    },
-    spec: {
-      type: 'model',
-      lifecycle: lifecycle,
-      owner: owner,
-      dependsOn: [`resource:${name}`, `api:${name}`],
-      providesApis: [name],
-    },
-  };
-
-  return JSON.stringify(component, null, 2);
-}
-
-// Generate Resource YAML
-function generateResourceYaml(
-  owner: string,
-  lifecycle: string,
-  is: KServeInferenceService,
-): string {
-  const name = getName(is);
-
-  const resource = {
-    apiVersion: 'backstage.io/v1alpha1',
-    kind: 'Resource',
-    metadata: {
-      name: name,
-      description: getDescription(is),
-    },
-    spec: {
-      type: 'model-version',
-      lifecycle: lifecycle,
-      owner: owner,
-      dependencyOf: [`component:${name}`],
-    },
-  };
-
-  return JSON.stringify(resource, null, 2);
-}
-
-// Generate API YAML
-function generateApiYaml(
-  owner: string,
-  lifecycle: string,
-  is: KServeInferenceService,
-): string {
-  const name = getName(is);
-
-  const api = {
-    apiVersion: 'backstage.io/v1alpha1',
-    kind: 'API',
-    metadata: {
-      name: name,
-      description: getDescription(is),
-    },
-    spec: {
-      type: 'openapi',
-      lifecycle: lifecycle,
-      owner: owner,
-      definition: '', // Would fetch from /openapi.json endpoint
-      dependencyOf: [`component:${name}`],
-    },
-  };
-
-  return JSON.stringify(api, null, 2);
 }
 
 // Export helper functions that may be needed

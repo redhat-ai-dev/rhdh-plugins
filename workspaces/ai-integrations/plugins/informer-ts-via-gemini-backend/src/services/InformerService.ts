@@ -15,8 +15,11 @@
  */
 
 import * as k8s from '@kubernetes/client-node';
-import { callBackstagePrinters, NormalizerFormat } from './Kfmr';
-import { callBackstagePrinters as callKServeBackstagePrinters } from './KServe';
+import { callBackstagePrinters, type ModelCatalog } from './Kfmr';
+import {
+  callBackstagePrinters as callKServeBackstagePrinters,
+  type KServeModelCatalog,
+} from './KServe';
 
 const group = 'serving.kserve.io';
 const version = 'v1beta1';
@@ -33,6 +36,19 @@ interface ModelCardMetadata {
 // Global model cards storage (from server.go line 23)
 // This stores model card content indexed by modelCardKey
 const modelCards = new Map<string, ModelCardMetadata>();
+
+// Model catalog metadata interface
+interface ModelCatalogMetadata {
+  catalogData: ModelCatalog | KServeModelCatalog;
+  lastUpdateTimeSinceEpoch: string;
+  normalizerType: NormalizerType;
+  updateCount: number;
+  needToUpdate: boolean;
+}
+
+// Global model catalog storage
+// This stores model catalog data indexed by importKey
+const modelCatalog = new Map<string, ModelCatalogMetadata>();
 
 // Constants for condition types (matching Go constants from bridgerest package)
 const INF_SVC_IngressReady_CONDITION = 'IngressReady';
@@ -161,6 +177,7 @@ interface ProcessKFMRResult {
   lastUpdateTimeSinceEpoch: string;
   modelCardKey: string;
   modelCard?: string;
+  catalogData: ModelCatalog;
 }
 
 // Configuration (these would typically come from environment variables)
@@ -321,7 +338,7 @@ async function processKFMR(
               }
 
               // Call backstage printers (Go line 497)
-              const catalogData = await callBackstagePrinters(
+              const catalogData: ModelCatalog = await callBackstagePrinters(
                 config.defaultOwner,
                 config.defaultLifecycle,
                 rm,
@@ -329,10 +346,9 @@ async function processKFMR(
                 mas,
                 // null,
                 is,
-                NormalizerFormat.CatalogInfoYamlFormat,
               );
               console.log(
-                `processKFMR: Generated catalog data (${catalogData.length} bytes)`,
+                `processKFMR: Generated catalog data with ${catalogData.models.length} models and ${catalogData.modelServers.length} model servers`,
               );
 
               // Build import key (Go line 515)
@@ -389,6 +405,7 @@ async function processKFMR(
                 lastUpdateTimeSinceEpoch,
                 modelCardKey,
                 modelCard,
+                catalogData,
               };
             }
           }
@@ -477,7 +494,7 @@ async function processKFMR(
             }
 
             // Call backstage printers (Go line 585)
-            const catalogData = await callBackstagePrinters(
+            const catalogData: ModelCatalog = await callBackstagePrinters(
               config.defaultOwner,
               config.defaultLifecycle,
               rm,
@@ -485,10 +502,9 @@ async function processKFMR(
               mas,
               // kfmrIS,
               is,
-              NormalizerFormat.CatalogInfoYamlFormat,
             );
             console.log(
-              `processKFMR: Generated catalog data (${catalogData.length} bytes)`,
+              `processKFMR: Generated catalog data with ${catalogData.models.length} models and ${catalogData.modelServers.length} model servers`,
             );
 
             // Build import key (Go line 602)
@@ -545,6 +561,7 @@ async function processKFMR(
               lastUpdateTimeSinceEpoch,
               modelCardKey,
               modelCard,
+              catalogData,
             };
           }
         }
@@ -624,6 +641,7 @@ async function reconcileInferenceService(
   let lastUpdateTimeSinceEpoch = '';
   let modelCardKey = '';
   let modelCard: string | undefined;
+  let catalogData: ModelCatalog | KServeModelCatalog | undefined;
   let normalizerType = NormalizerType.KubeflowNormalizer;
 
   // Step 1: Process KFMR if routes are available (line 365-369 in Go)
@@ -635,6 +653,7 @@ async function reconcileInferenceService(
       lastUpdateTimeSinceEpoch = result.lastUpdateTimeSinceEpoch;
       modelCardKey = result.modelCardKey;
       modelCard = result.modelCard;
+      catalogData = result.catalogData;
     }
   }
 
@@ -654,13 +673,14 @@ async function reconcileInferenceService(
 
     // Call backstage printers (equivalent to kserve.CallBackstagePrinters in Go)
     console.log(`Calling backstage printers for ${namespace}/${name}`);
-    const catalogData = await callKServeBackstagePrinters(
+    catalogData = await callKServeBackstagePrinters(
       config.defaultOwner,
       config.defaultLifecycle,
       is,
-      NormalizerFormat.CatalogInfoYamlFormat,
     );
-    console.log(`Generated KServe catalog data (${catalogData.length} bytes)`);
+    console.log(
+      `Generated KServe catalog data with ${catalogData.models.length} models and ${catalogData.modelServers.length} model servers`,
+    );
 
     // Build import key
     [importKey] = buildImportKeyAndURI(namespace, name);
@@ -668,31 +688,82 @@ async function reconcileInferenceService(
   }
 
   // Step 3: Process buffer and send to storage (lines 410-413 in Go)
+  if (!catalogData) {
+    console.error(
+      `No catalog data available for ${namespace}/${name}, skipping processModelCatalog`,
+    );
+    return;
+  }
+
   console.log(
     `Processing buffer for ${namespace}/${name} with importKey: ${importKey}`,
   );
-  await processBWriter(
+  await processModelCatalog(
     importKey,
     normalizerType,
     lastUpdateTimeSinceEpoch,
     modelCardKey,
     modelCard,
+    catalogData,
   );
 
   console.log(`Successfully reconciled InferenceService: ${namespace}/${name}`);
 }
 
 // Helper function to process buffer and send to storage (matching Go processBWriter)
-async function processBWriter(
+async function processModelCatalog(
   importKey: string,
   normalizerType: NormalizerType,
   lastUpdateTimeSinceEpoch: string,
   modelCardKey: string,
   modelCard: string | undefined,
+  catalogData: ModelCatalog | KServeModelCatalog,
 ): Promise<void> {
   console.log(
-    `processBWriter - key: ${importKey}, type: ${normalizerType}, epoch: ${lastUpdateTimeSinceEpoch}, modelCardKey: ${modelCardKey}`,
+    `processModelCatalog - key: ${importKey}, type: ${normalizerType}, epoch: ${lastUpdateTimeSinceEpoch}, modelCardKey: ${modelCardKey}`,
   );
+  console.log(
+    `processModelCatalog - catalogData has ${catalogData.models.length} models and ${catalogData.modelServers.length} model servers`,
+  );
+
+  // Handle model catalog storage
+  if (importKey && importKey.length > 0) {
+    const existingCatalog = modelCatalog.get(importKey);
+
+    if (!existingCatalog) {
+      // Create new model catalog metadata entry
+      const mcm: ModelCatalogMetadata = {
+        catalogData: catalogData,
+        lastUpdateTimeSinceEpoch: lastUpdateTimeSinceEpoch,
+        normalizerType: normalizerType,
+        needToUpdate: true,
+        updateCount: 0,
+      };
+      modelCatalog.set(importKey, mcm);
+      console.log(
+        `processModelCatalog: Created new model catalog entry for key ${importKey}`,
+      );
+    } else {
+      // Update existing model catalog metadata if timestamp changed
+      if (
+        existingCatalog.lastUpdateTimeSinceEpoch !== lastUpdateTimeSinceEpoch
+      ) {
+        existingCatalog.lastUpdateTimeSinceEpoch = lastUpdateTimeSinceEpoch;
+        existingCatalog.catalogData = catalogData;
+        existingCatalog.normalizerType = normalizerType;
+        existingCatalog.needToUpdate = true;
+        existingCatalog.updateCount = 0;
+        modelCatalog.set(importKey, existingCatalog);
+        console.log(
+          `processModelCatalog: Updated model catalog entry for key ${importKey} (timestamp changed)`,
+        );
+      } else {
+        console.log(
+          `processModelCatalog: Model catalog for key ${importKey} already up to date`,
+        );
+      }
+    }
+  }
 
   // Handle model card storage (converted from server.go lines 219-234)
   if (modelCardKey && modelCardKey.length > 0) {
@@ -708,7 +779,7 @@ async function processBWriter(
       };
       modelCards.set(modelCardKey, mcm);
       console.log(
-        `processBWriter: Created new model card entry for key ${modelCardKey}`,
+        `processModelCatalog: Created new model card entry for key ${modelCardKey}`,
       );
     } else {
       // Update existing model card metadata if timestamp changed
@@ -719,11 +790,11 @@ async function processBWriter(
         existingMcm.updateCount = 0;
         modelCards.set(modelCardKey, existingMcm);
         console.log(
-          `processBWriter: Updated model card entry for key ${modelCardKey} (timestamp changed)`,
+          `processModelCatalog: Updated model card entry for key ${modelCardKey} (timestamp changed)`,
         );
       } else {
         console.log(
-          `processBWriter: Model card for key ${modelCardKey} already up to date`,
+          `processModelCatalog: Model card for key ${modelCardKey} already up to date`,
         );
       }
     }

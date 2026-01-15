@@ -257,6 +257,37 @@ function innerGetStringPropVal(
   return undefined;
 }
 
+// Model catalog interfaces
+export interface Model {
+  name: string;
+  owner: string;
+  lifecycle: string;
+  description: string;
+  tags: string[];
+  artifactLocationURL?: string;
+  annotations: { [key: string]: string };
+}
+
+export interface ModelServerAPI {
+  type: string;
+  url: string;
+  spec: string;
+}
+
+export interface ModelServer {
+  name: string;
+  owner: string;
+  lifecycle: string;
+  description: string;
+  tags: string[];
+  api: ModelServerAPI;
+}
+
+export interface ModelCatalog {
+  models: Model[];
+  modelServers: ModelServer[];
+}
+
 // Sanitize name helper
 function sanitizeName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
@@ -278,37 +309,22 @@ export async function callBackstagePrinters(
   mas: ModelArtifact[],
   // kfmrIS: KFMRInferenceService | null,
   kserveIS: KServeInferenceService | null,
-  format: NormalizerFormat,
-): Promise<string> {
-  console.log(
-    `callBackstagePrinters: format=${format}, rm=${rm.name}, mv=${mv.name}`,
-  );
+): Promise<ModelCatalog> {
+  console.log(`callBackstagePrinters: rm=${rm.name}, mv=${mv.name}`);
 
-  switch (format) {
-    case NormalizerFormat.JsonArrayFormat:
-      return generateJsonArrayFormat(
-        owner,
-        lifecycle,
-        rm,
-        mv,
-        mas,
-        /* kfmrIS,*/ kserveIS,
-      );
-    case NormalizerFormat.CatalogInfoYamlFormat:
-    default:
-      return generateCatalogInfoYaml(
-        owner,
-        lifecycle,
-        rm,
-        mv,
-        mas /* kfmrIS, kserveIS*/,
-      );
-  }
+  return generateModelCatalog(
+    owner,
+    lifecycle,
+    rm,
+    mv,
+    mas,
+    /* kfmrIS,*/ kserveIS,
+  );
 }
 
-// Generate JSON array format output
+// Generate model catalog
 // Converted from PrintModelCatalogPopulator logic (kfmr.go line 726-732)
-function generateJsonArrayFormat(
+function generateModelCatalog(
   owner: string,
   lifecycle: string,
   rm: RegisteredModel,
@@ -316,8 +332,8 @@ function generateJsonArrayFormat(
   mas: ModelArtifact[],
   // kfmrIS: KFMRInferenceService | null,
   kserveIS: KServeInferenceService | null,
-): string {
-  const model = {
+): ModelCatalog {
+  const model: Model = {
     name: `${sanitizeName(rm.name)}-${sanitizeModelVersion(mv.name)}`,
     owner: getOwner(owner, rm),
     lifecycle: getLifecycle(lifecycle, mv, rm),
@@ -329,7 +345,7 @@ function generateJsonArrayFormat(
     },
   };
 
-  const modelServer = kserveIS
+  const modelServer: ModelServer | null = kserveIS
     ? {
         name: sanitizeName(kserveIS.metadata.name),
         owner: getOwner(owner, rm),
@@ -344,142 +360,10 @@ function generateJsonArrayFormat(
       }
     : null;
 
-  const result = {
+  return {
     models: [model],
     modelServers: modelServer ? [modelServer] : [],
   };
-
-  return JSON.stringify(result, null, 2);
-}
-
-// Generate catalog-info.yaml format output
-// Converted from catalog-info.yaml printer logic (kfmr.go line 733-768)
-function generateCatalogInfoYaml(
-  owner: string,
-  lifecycle: string,
-  rm: RegisteredModel,
-  mv: ModelVersion,
-  mas: ModelArtifact[],
-  // kfmrIS: KFMRInferenceService | null,
-  // kserveIS: KServeInferenceService | null,
-): string {
-  const yamlParts: string[] = [];
-
-  // Component (kfmr.go line 736)
-  yamlParts.push(
-    generateComponentYaml(owner, lifecycle, rm, mv, mas /* , kserveIS*/),
-  );
-
-  // Resource (kfmr.go line 742-755)
-  yamlParts.push(generateResourceYaml(owner, lifecycle, rm, mv, mas));
-
-  // API (kfmr.go line 757-767)
-  yamlParts.push(
-    generateApiYaml(owner, lifecycle, rm /* mv, kfmrIS, kserveIS*/),
-  );
-
-  return yamlParts.join('\n---\n');
-}
-
-// Generate Component YAML
-function generateComponentYaml(
-  owner: string,
-  lifecycle: string,
-  rm: RegisteredModel,
-  mv: ModelVersion,
-  mas: ModelArtifact[],
-  // kserveIS: KServeInferenceService | null,
-): string {
-  const tags = buildTags(rm, mv, mas);
-  const links = mas.map(ma => ({
-    url: ma.uri || '',
-    title: ma.description || ma.name || '',
-    icon: 'web-asset',
-    type: 'website',
-  }));
-
-  const component = {
-    apiVersion: 'backstage.io/v1alpha1',
-    kind: 'Component',
-    metadata: {
-      name: sanitizeName(rm.name),
-      description: rm.description || '',
-      tags: tags,
-      links: links,
-    },
-    spec: {
-      type: 'model',
-      lifecycle: getLifecycle(lifecycle, mv, rm),
-      owner: getOwner(owner, rm),
-      dependsOn: [`resource:${mv.name}`, ...mas.map(ma => `api:${ma.name}`)],
-    },
-  };
-
-  return JSON.stringify(component, null, 2);
-}
-
-// Generate Resource YAML
-function generateResourceYaml(
-  owner: string,
-  lifecycle: string,
-  rm: RegisteredModel,
-  mv: ModelVersion,
-  mas: ModelArtifact[],
-): string {
-  const tags = buildTagsForModelVersion(mv, mas);
-  const links = mas.map(ma => ({
-    url: ma.uri || '',
-    title: ma.description || ma.name || '',
-    icon: 'web-asset',
-    type: 'website',
-  }));
-
-  const resource = {
-    apiVersion: 'backstage.io/v1alpha1',
-    kind: 'Resource',
-    metadata: {
-      name: mv.name,
-      description: mv.description || '',
-      tags: tags,
-      links: links,
-    },
-    spec: {
-      type: 'model-version',
-      lifecycle: getLifecycle(lifecycle, mv, rm),
-      owner: getOwner(owner, rm),
-      dependencyOf: [`component:${sanitizeName(rm.name)}`],
-    },
-  };
-
-  return JSON.stringify(resource, null, 2);
-}
-
-// Generate API YAML
-function generateApiYaml(
-  owner: string,
-  lifecycle: string,
-  rm: RegisteredModel,
-  // mv: ModelVersion,
-  // kfmrIS: KFMRInferenceService | null,
-  // kserveIS: KServeInferenceService | null,
-): string {
-  const api = {
-    apiVersion: 'backstage.io/v1alpha1',
-    kind: 'API',
-    metadata: {
-      name: sanitizeName(rm.name),
-      description: rm.description || '',
-    },
-    spec: {
-      type: 'openapi',
-      lifecycle: lifecycle,
-      owner: getOwner(owner, rm),
-      definition: 'no-definition-yet',
-      dependencyOf: [`component:${sanitizeName(rm.name)}`],
-    },
-  };
-
-  return JSON.stringify(api, null, 2);
 }
 
 // Helper: Get owner with fallback
@@ -519,30 +403,6 @@ function buildTags(
     const rmTags = getTagsFromCustomProps(false, rm.customProperties);
     Object.assign(tagsMap, rmTags);
   }
-
-  // Get tags from model version
-  if (mv.customProperties) {
-    const mvTags = getTagsFromCustomProps(true, mv.customProperties);
-    Object.assign(tagsMap, mvTags);
-  }
-
-  // Get tags from model artifacts
-  for (const ma of mas) {
-    if (ma.customProperties) {
-      const maTags = getTagsFromCustomProps(true, ma.customProperties);
-      Object.assign(tagsMap, maTags);
-    }
-  }
-
-  return Object.values(tagsMap);
-}
-
-// Helper: Build tags for model version only
-function buildTagsForModelVersion(
-  mv: ModelVersion,
-  mas: ModelArtifact[],
-): string[] {
-  const tagsMap: { [key: string]: string } = {};
 
   // Get tags from model version
   if (mv.customProperties) {
