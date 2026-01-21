@@ -16,8 +16,187 @@
 
 // Converted from kfmr.go in model-catalog-bridge
 
+import type { ReconcilerConfig, Route } from './InformerService';
+
 // Constants (from kfmr.go line 26-30)
 const TAG_REGEXP = '^[a-z0-9:+#]+(\\-[a-z0-9:+#]+)*$';
+
+// Environment variable constants
+const MODEL_REGISTRY_ROUTE_ENV_VAR = 'MODEL_REGISTRY_ROUTE';
+const MODEL_REGISTRY_TOKEN_ENV_VAR = 'MODEL_REGISTRY_TOKEN';
+const KFMR_BASE_URI = '/api/model_registry/v1alpha3';
+const KFMR_CATALOG_BASE_URI = '/api/model_catalog/v1';
+
+// Setup KFMR configuration
+// Converted from Go setupKFMR method (controller.go line 113-206)
+export async function setupKFMR(
+  config: ReconcilerConfig,
+): Promise<ReconcilerConfig> {
+  // Check if KFMR clients already initialized (Go line 114-116)
+  if (config.kfmrClients.size > 0) {
+    console.log('setupKFMR: KFMR clients already initialized');
+    return config;
+  }
+
+  // String replacer to remove \r and \n (Go line 118-120)
+  const replacer = (str: string) => str.replace(/\r/g, '').replace(/\n/g, '');
+
+  let mrRoute = process.env[MODEL_REGISTRY_ROUTE_ENV_VAR] || '';
+  mrRoute = replacer(mrRoute);
+  const routeTuples = mrRoute.split(',');
+
+  console.log(`setupKFMR: route env var ${mrRoute}`);
+
+  // Process each route tuple from environment variable (Go line 123-157)
+  for (const routeTuple of routeTuples) {
+    if (routeTuple.length === 0) {
+      continue;
+    }
+
+    const parts = routeTuple.split(':');
+    let kfmrRoute: Route | undefined;
+    let ns = '';
+    let name = parts[0];
+
+    if (parts.length > 1) {
+      ns = parts[0];
+      name = parts[1];
+    }
+
+    try {
+      // Handle namespace-based route lookup (Go line 135-149)
+      if (ns === '' && config.routeClient) {
+        // List all routes and find by name
+        const routes = await config.routeClient.routes(ns).list();
+        if (routes && routes.items && routes.items.length > 0) {
+          for (const route of routes.items) {
+            if (route.metadata.name === name) {
+              kfmrRoute = route;
+              break;
+            }
+          }
+        }
+      } else if (config.routeClient) {
+        // Get specific route by namespace and name (Go line 148)
+        kfmrRoute = await config.routeClient.routes(ns).get(name);
+      }
+
+      // Store route if it has ingress (Go line 154-156)
+      if (
+        kfmrRoute &&
+        kfmrRoute.status?.ingress &&
+        kfmrRoute.status.ingress.length > 0
+      ) {
+        config.kfmrRoutes.set(routeTuple, kfmrRoute);
+      }
+    } catch (error) {
+      console.error(
+        `setupKFMR: error fetching model registry route ${routeTuple}:`,
+        error,
+      );
+      continue;
+    }
+  }
+
+  console.log(`setupKFMR: env var route list len ${config.kfmrRoutes.size}`);
+
+  // If no routes found via env var, try label-based query (Go line 160-180)
+  if (config.kfmrRoutes.size === 0 && config.routeClient) {
+    try {
+      const routes = await config.routeClient.routes('__all__').list({
+        labelSelector: 'app.kubernetes.io/managed-by=model-registry-operator',
+      });
+
+      if (routes && routes.items && routes.items.length > 0) {
+        for (const route of routes.items) {
+          const key = `${route.metadata.namespace}:${route.metadata.name}`;
+          console.log(`setupKFMR: query found route ${key}`);
+
+          if (route.metadata.name.includes('catalog')) {
+            // Catalog is supposed to be a singleton (Go line 171-175)
+            console.log(`setupKFMR: found catalog ${route.metadata.name}`);
+            config.kfmrCatalogRoute = route;
+            continue;
+          }
+
+          console.log(
+            `setupKFMR: found registry ${route.metadata.name} storing into map with key ${key}`,
+          );
+          config.kfmrRoutes.set(key, route);
+        }
+      }
+    } catch (error) {
+      console.error('setupKFMR: error listing routes by label:', error);
+    }
+  }
+
+  // Get KFMR token (Go line 182-186)
+  let kfmrToken = process.env[MODEL_REGISTRY_TOKEN_ENV_VAR] || '';
+  kfmrToken = replacer(kfmrToken);
+  if (kfmrToken.length === 0) {
+    kfmrToken = config.k8sToken || '';
+  }
+
+  // Create KFMR client for each route (Go line 187-204)
+  for (const [key, kfmrRoute] of config.kfmrRoutes.entries()) {
+    // Check if client already exists (Go line 188-192)
+    if (config.kfmrClients.has(key)) {
+      console.log(
+        `setupKFMR: loop through routes check against kfmr key ${key} - already exists`,
+      );
+      continue;
+    }
+
+    if (!kfmrRoute.status?.ingress || kfmrRoute.status.ingress.length === 0) {
+      console.log(`setupKFMR: route ${key} has no ingress, skipping`);
+      continue;
+    }
+
+    // Create KFMRClient wrapper (Go line 193-200)
+    const rootRegistryURL = `https://${kfmrRoute.status.ingress[0].host}${KFMR_BASE_URI}`;
+    let rootCatalogURL: string | undefined;
+
+    if (
+      config.kfmrCatalogRoute?.status?.ingress &&
+      config.kfmrCatalogRoute.status.ingress.length > 0
+    ) {
+      rootCatalogURL = `https://${config.kfmrCatalogRoute.status.ingress[0].host}${KFMR_CATALOG_BASE_URI}`;
+    }
+
+    // Create the KFMRClient instance
+    // Note: We'll need to implement the actual client wrapper that matches the KFMRClient interface
+    const kfmrClient = {
+      rootRegistryURL,
+      rootCatalogURL,
+      token: kfmrToken,
+      // TODO: Implement these methods to make actual HTTP requests
+      listRegisteredModels: async () => [],
+      listInferenceServices: async () => [], // @ts-ignore
+      listModelVersions: async (registeredModelId: string) => [], // @ts-ignore
+      listModelArtifacts: async (modelVersionId: string) => [],
+      getServingEnvironment: async (servingEnvironmentId: string) => ({
+        id: servingEnvironmentId,
+      }),
+      getModelVersion: async (modelVersionId: string) => ({
+        id: modelVersionId,
+        name: '',
+      }), // @ts-ignore
+      getModelCard: async (
+        modelSourceClass: string,
+        modelSourceGroup: string,
+        modelSourceName: string,
+      ) => undefined,
+    };
+
+    console.log(
+      `setupKFMR: storing route ${key} into kfmr with URL ${rootRegistryURL}`,
+    );
+    config.kfmrClients.set(key, kfmrClient);
+  }
+
+  console.log(`setupKFMR: initialized ${config.kfmrClients.size} KFMR clients`);
+  return config;
+}
 
 // Normalizer formats
 export enum NormalizerFormat {

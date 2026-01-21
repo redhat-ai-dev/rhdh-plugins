@@ -15,7 +15,7 @@
  */
 
 import * as k8s from '@kubernetes/client-node';
-import { callBackstagePrinters, type ModelCatalog } from './Kfmr';
+import { callBackstagePrinters, type ModelCatalog, setupKFMR } from './Kfmr';
 import {
   callBackstagePrinters as callKServeBackstagePrinters,
   type KServeModelCatalog,
@@ -104,6 +104,28 @@ interface InferenceService {
   status?: InferenceServiceStatus;
 }
 
+export interface RouteIngress {
+  host: string;
+}
+
+export interface RouteStatus {
+  ingress?: RouteIngress[];
+}
+
+export interface Route {
+  apiVersion: string;
+  kind: string;
+  metadata: {
+    name: string;
+    namespace: string;
+    uid?: string;
+    labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
+  };
+  spec: any;
+  status?: RouteStatus;
+}
+
 // KFMR (KubeFlow Model Registry) related interfaces
 interface RegisteredModel {
   id?: string;
@@ -181,12 +203,15 @@ interface ProcessKFMRResult {
 }
 
 // Configuration (these would typically come from environment variables)
-interface ReconcilerConfig {
+export interface ReconcilerConfig {
   kfmrClients: Map<string, KFMRClient>; // KFMR clients keyed by registry identifier
+  kfmrRoutes: Map<string, Route>; // KFMR routes keyed by registry identifier
+  kfmrCatalogRoute?: Route; // KFMR catalog route
   storageURL: string;
-  format: string;
   defaultLifecycle: string;
   defaultOwner: string;
+  k8sToken?: string; // Kubernetes authentication token
+  routeClient?: any; // OpenShift route client (TODO: add proper type)
 }
 
 // Helper function to sanitize names (matching Go util.SanitizeName)
@@ -831,13 +856,12 @@ async function innerStart(
 ): Promise<void> {
   console.log('innerStart: Beginning reconciliation sync');
 
-  // TODO: Call setupKFMR to ensure KFMR routes are configured
-  // In the Go code, this is line 652
+  const updConfig = await setupKFMR(config);
 
   const keys: string[] = [];
 
   // Step 1: Process KFMR registries (lines 658-794 in Go)
-  if (config.kfmrClients.size > 0) {
+  if (updConfig.kfmrClients.size > 0) {
     console.log(
       `innerStart: Processing ${config.kfmrClients.size} KFMR registries`,
     );
@@ -935,20 +959,32 @@ export const setupInformer = async () => {
 
   // Initialize configuration from environment variables
   const config: ReconcilerConfig = {
-    kfmrClients: new Map(), // TODO: Initialize from env var MODEL_REGISTRY_ROUTE and create KFMRClient instances
+    kfmrClients: new Map(),
+    kfmrRoutes: new Map(),
+    kfmrCatalogRoute: undefined,
     storageURL: process.env.STORAGE_URL || 'http://localhost:7070',
-    format: process.env.FORMAT || 'catalog-info.yaml',
     defaultLifecycle: process.env.LIFECYCLE || 'production',
     defaultOwner: process.env.OWNER || 'default-owner',
+    k8sToken: undefined, // TODO: Extract token from kc if needed
+    routeClient: undefined, // TODO: Create OpenShift route client if available
   };
 
-  console.log('Reconciler configuration:', {
+  console.log('Reconciler configuration (before setupKFMR):', {
     storageURL: config.storageURL,
-    format: config.format,
     defaultLifecycle: config.defaultLifecycle,
     defaultOwner: config.defaultOwner,
     kfmrClients: config.kfmrClients.size,
   });
+
+  // Setup KFMR clients (equivalent to Go line 263: reconciler.setupKFMR(ctx))
+  try {
+    await setupKFMR(config);
+    console.log(
+      `Reconciler configuration (after setupKFMR): KFMR clients initialized: ${config.kfmrClients.size}`,
+    );
+  } catch (error) {
+    console.error('Error setting up KFMR:', error);
+  }
 
   const listFn: k8s.ListPromise<InferenceService> = () =>
     client.listClusterCustomObject(group, version, plural) as any;
