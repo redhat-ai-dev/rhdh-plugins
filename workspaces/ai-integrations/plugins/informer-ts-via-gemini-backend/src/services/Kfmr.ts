@@ -27,6 +27,45 @@ const MODEL_REGISTRY_TOKEN_ENV_VAR = 'MODEL_REGISTRY_TOKEN';
 const KFMR_BASE_URI = '/api/model_registry/v1alpha3';
 const KFMR_CATALOG_BASE_URI = '/api/model_catalog/v1';
 
+// REST API URI constants (from pkg/rest/kfmr.go)
+const LIST_REG_MODEL_URI = '/registered_models';
+// @ts-ignore
+const GET_REG_MODEL_URI = '/registered_models/%s';
+// @ts-ignore
+const LIST_VERSIONS_OFF_REG_MODELS_URI = '/registered_models/%s/versions';
+// @ts-ignore
+const LIST_ARTIFACTS_OFF_VERSIONS_URI = '/model_versions/%s/artifacts';
+// @ts-ignore
+const LIST_INFERENCE_SERVICES_URI = '/inference_services';
+// @ts-ignore
+const GET_SERVING_ENV_URI = '/serving_environments/%s';
+// @ts-ignore
+const GET_MODEL_ARTIFACT_URI = '/model_artifacts/%s';
+// @ts-ignore
+const GET_MODEL_VERSION_URI = '/model_versions/%s';
+
+// Helper function for making GET requests to the model registry
+// Converted from Go getFromModelRegistry method (rest.go line 57-71)
+async function getFromModelRegistry(url: string, token: string): Promise<any> {
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `GET request to ${url} failed with status ${response.status}: ${body}`,
+    );
+  }
+
+  console.log(`GET request to ${url} returned ok`);
+  return response.json();
+}
+
 // Setup KFMR configuration
 // Converted from Go setupKFMR method (controller.go line 113-206)
 export async function setupKFMR(
@@ -169,8 +208,15 @@ export async function setupKFMR(
       rootRegistryURL,
       rootCatalogURL,
       token: kfmrToken,
-      // TODO: Implement these methods to make actual HTTP requests
-      listRegisteredModels: async () => [],
+      // Converted from ListRegisteredModels (registeredmodel.go line 10-22)
+      listRegisteredModels: async (): Promise<RegisteredModel[]> => {
+        const url = rootRegistryURL + LIST_REG_MODEL_URI;
+        const data: RegisteredModelList = await getFromModelRegistry(
+          url,
+          kfmrToken,
+        );
+        return data.items || [];
+      },
       listInferenceServices: async () => [], // @ts-ignore
       listModelVersions: async (registeredModelId: string) => [], // @ts-ignore
       listModelArtifacts: async (modelVersionId: string) => [],
@@ -180,10 +226,11 @@ export async function setupKFMR(
       getModelVersion: async (modelVersionId: string) => ({
         id: modelVersionId,
         name: '',
-      }), // @ts-ignore
+      }),
       getModelCard: async (
-        modelSourceClass: string,
-        modelSourceGroup: string,
+        // @ts-ignore
+        modelSourceClass: string, // @ts-ignore
+        modelSourceGroup: string, // @ts-ignore
         modelSourceName: string,
       ) => undefined,
     };
@@ -270,6 +317,10 @@ export interface RegisteredModel {
   owner?: string;
   state?: RegisteredModelState;
   customProperties?: { [key: string]: MetadataValue };
+}
+
+export interface RegisteredModelList {
+  items: RegisteredModel[];
 }
 
 export interface ModelVersion {
