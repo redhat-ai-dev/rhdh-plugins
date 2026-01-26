@@ -204,6 +204,7 @@ export async function setupKFMR(
 
     // Create the KFMRClient instance
     // Note: We'll need to implement the actual client wrapper that matches the KFMRClient interface
+    // @ts-ignore
     const kfmrClient = {
       rootRegistryURL,
       rootCatalogURL,
@@ -217,7 +218,16 @@ export async function setupKFMR(
         );
         return data.items || [];
       },
-      listInferenceServices: async () => [], // @ts-ignore
+      // Converted from ListInferenceServices (inferenceservice.go line 10-25)
+      listInferenceServices: async (): Promise<KFMRInferenceService[]> => {
+        const url = rootRegistryURL + LIST_INFERENCE_SERVICES_URI;
+        const data: InferenceServiceList = await getFromModelRegistry(
+          url,
+          kfmrToken,
+        );
+        return data.items || [];
+      },
+      // @ts-ignore
       listModelVersions: async (registeredModelId: string) => [], // @ts-ignore
       listModelArtifacts: async (modelVersionId: string) => [],
       getServingEnvironment: async (servingEnvironmentId: string) => ({
@@ -354,6 +364,10 @@ export interface KFMRInferenceService {
   desiredState?: InferenceServiceState;
   runtime?: string;
   customProperties?: { [key: string]: MetadataValue };
+}
+
+export interface InferenceServiceList {
+  items: KFMRInferenceService[];
 }
 
 export interface KServeInferenceService {
