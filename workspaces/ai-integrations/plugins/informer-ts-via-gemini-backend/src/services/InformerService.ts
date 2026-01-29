@@ -15,7 +15,16 @@
  */
 
 import * as k8s from '@kubernetes/client-node';
-import { callBackstagePrinters, type ModelCatalog, setupKFMR } from './Kfmr';
+import {
+  callBackstagePrinters,
+  type ModelCatalog,
+  setupKFMR,
+  loopOverKFMR,
+  getKubeFlowInferenceServicesForModelVersion,
+  sanitizeName as kfmrSanitizeName,
+  type KFMRClient as KfmrClientType,
+  InferenceServiceState as KFMRInferenceServiceState,
+} from './Kfmr';
 import {
   callBackstagePrinters as callKServeBackstagePrinters,
   type KServeModelCatalog,
@@ -847,6 +856,67 @@ async function postCurrentKeySet(
   console.log(`Would post key set to storage at: ${config.storageURL}`);
 }
 
+// Helper function to call backstage printers and process model catalog
+// Converted from innerStartCallBackstagePrinters (controller.go line 839-878)
+async function innerStartCallBackstagePrinters(
+  kfmr: KfmrClientType,
+  rm: RegisteredModel,
+  mv: ModelVersion,
+  _kfmrIS: KFMRInferenceService | null, // TODO: Pass to callBackstagePrinters when implemented
+  kserveIS: InferenceService | null,
+  maa: ModelArtifact[],
+  replacer: (str: string) => string,
+  importKey: string,
+  lastUpdateTimeSinceEpoch: string,
+  config: ReconcilerConfig,
+): Promise<void> {
+  // Call backstage printers (Go line 852)
+  const catalogData: ModelCatalog = await callBackstagePrinters(
+    config.defaultOwner,
+    config.defaultLifecycle,
+    rm,
+    mv,
+    maa,
+    kserveIS,
+  );
+
+  // Get model card if catalog URL exists (Go line 859-870)
+  let modelCard: string | undefined;
+  let modelCardKey = '';
+  if (kfmr.rootCatalogURL) {
+    for (const ma of maa) {
+      if (ma.modelSourceClass && ma.modelSourceGroup && ma.modelSourceName) {
+        try {
+          modelCard = await kfmr.getModelCard(
+            ma.modelSourceClass,
+            ma.modelSourceGroup,
+            ma.modelSourceName,
+          );
+          modelCardKey =
+            replacer(ma.modelSourceClass) +
+            replacer(ma.modelSourceGroup) +
+            replacer(ma.modelSourceName);
+          console.log(`innerStart: built modelCardKey ${modelCardKey}`);
+          break;
+        } catch (error) {
+          console.error('innerStart: error getting model card:', error);
+          continue;
+        }
+      }
+    }
+  }
+
+  // Process model catalog (Go line 872)
+  await processModelCatalog(
+    importKey,
+    NormalizerType.KubeflowNormalizer,
+    lastUpdateTimeSinceEpoch,
+    modelCardKey,
+    modelCard,
+    catalogData,
+  );
+}
+
 // Main polling/sync function (converted from Go innerStart method starting at line 651)
 // This is called on delete events and during background polling to sync the current state
 async function innerStart(
@@ -861,29 +931,198 @@ async function innerStart(
   const keys: string[] = [];
 
   // Step 1: Process KFMR registries (lines 658-794 in Go)
-  if (updConfig.kfmrClients.size > 0) {
-    console.log(
-      `innerStart: Processing ${config.kfmrClients.size} KFMR registries`,
-    );
+  const replacer = (str: string) => str.replace(/ /g, '');
+  console.log(`innerStart: len kfmr ${updConfig.kfmrClients.size}`);
 
-    // TODO: Implement KFMR processing loop
-    // This would:
-    // 1. Loop over each KFMR registry (line 658)
-    // 2. Call LoopOverKFMR to get registered models, model versions, and model artifacts (line 664)
-    // 3. For each registered model:
-    //    a. Get its model versions (line 671)
-    //    b. Get its model artifacts (line 676)
-    //    c. For each model version:
-    //       - Build import key (line 684)
-    //       - Get KubeFlow inference services for the model version (line 701)
-    //       - If no KubeFlow inference services, call backstage printers without KServe (line 707-722)
-    //       - If there are KubeFlow inference services:
-    //         * Check if deployed (line 730)
-    //         * Find matching KServe inference service by labels (line 736-753)
-    //         * Call backstage printers with both KubeFlow and KServe (line 759-776)
-    //       - Add import key to keys array (line 690)
-    //
-    // For now, we'll skip KFMR processing and focus on KServe-only scenario
+  for (const [registryKey, kfmr] of updConfig.kfmrClients.entries()) {
+    try {
+      // Call loopOverKFMR to get registered models, model versions, and model artifacts (Go line 664)
+      const { registeredModels, modelVersionsMap, modelArtifactsMap } =
+        await loopOverKFMR(kfmr as KfmrClientType);
+
+      console.log(
+        `innerStart: len rms ${registeredModels.length} mvs ${modelVersionsMap.size} mas ${modelArtifactsMap.size}`,
+      );
+
+      // Process each registered model (Go line 670)
+      for (const rm of registeredModels) {
+        const rmNameKey = kfmrSanitizeName(rm.name);
+
+        // Get model versions for this registered model (Go line 671)
+        const mva = modelVersionsMap.get(rmNameKey);
+        if (!mva) {
+          console.log(`innerStart: mvs rm disconnect ${rm.name}`);
+          continue;
+        }
+
+        // Get model artifacts map for this registered model (Go line 676)
+        const maa = modelArtifactsMap.get(rmNameKey);
+        if (!maa) {
+          console.log(`innerStart: mas rm disconnect ${rm.name}`);
+          continue;
+        }
+
+        let foundKServe = false;
+
+        // Process each model version (Go line 682)
+        for (const mv of mva) {
+          if (!mv.id) continue;
+
+          // Build import key (Go line 684)
+          const [importKey] = buildImportKeyAndURI(
+            kfmrSanitizeName(rm.name),
+            kfmrSanitizeName(mv.name),
+          );
+          console.log(
+            `innerStart: importKey ${importKey} from rm ${rm.name} mv ${mv.name}`,
+          );
+
+          // Get last update timestamp (Go line 686-688)
+          let lastUpdateTimeSinceEpoch = mv.lastUpdateTimeSinceEpoch || '';
+          if (
+            rm.lastUpdateTimeSinceEpoch &&
+            rm.lastUpdateTimeSinceEpoch > lastUpdateTimeSinceEpoch
+          ) {
+            lastUpdateTimeSinceEpoch = rm.lastUpdateTimeSinceEpoch;
+          }
+
+          // Add import key to keys array (Go line 690)
+          keys.push(importKey);
+
+          // Get model artifacts for this model version
+          const mvArtifacts = maa.get(mv.id) || [];
+
+          // Get KubeFlow inference services for this model version (Go line 700-701)
+          let mvISL: KFMRInferenceService[] = [];
+          try {
+            mvISL = await getKubeFlowInferenceServicesForModelVersion(
+              kfmr as KfmrClientType,
+              mv,
+            );
+          } catch (error) {
+            console.error(
+              'innerStart: error listing kubeflow inference services:',
+              error,
+            );
+            continue;
+          }
+
+          // If no KubeFlow inference services, call backstage printers without KServe (Go line 706-722)
+          if (mvISL.length === 0) {
+            try {
+              await innerStartCallBackstagePrinters(
+                kfmr as KfmrClientType,
+                rm,
+                mv,
+                null,
+                null,
+                mvArtifacts,
+                replacer,
+                importKey,
+                lastUpdateTimeSinceEpoch,
+                config,
+              );
+            } catch (error) {
+              console.log(
+                `innerStart: callBackstage printers len mvISL 0 error: ${error}`,
+              );
+            }
+            continue;
+          }
+
+          // Process each KubeFlow inference service (Go line 724)
+          for (const kis of mvISL) {
+            // Check if deployed (Go line 725-732)
+            if (kis.desiredState !== KFMRInferenceServiceState.Deployed) {
+              console.log(
+                `innerStart: kubeflow infsvc ${kis.name} id ${kis.id} not deployed`,
+              );
+              continue;
+            }
+
+            // Find matching KServe inference service by labels (Go line 734-753)
+            let kserveIS: InferenceService | null = null;
+            try {
+              const isList = await client.listClusterCustomObject(
+                group,
+                version,
+                plural,
+                undefined,
+                undefined,
+                undefined,
+                undefined,
+                `${INF_SVC_RM_ID_LABEL}=${rm.id},${INF_SVC_MV_ID_LABEL}=${mv.id}`,
+              );
+
+              const items = (isList.body as any).items as InferenceService[];
+              if (items && items.length > 0) {
+                kserveIS = items[0];
+                console.log(
+                  `innerStart: found kserve infsvc ${kserveIS.metadata.namespace}:${kserveIS.metadata.name} from rm ${rm.id} mv ${mv.id} kubeflow is ${kis.id}`,
+                );
+              }
+            } catch (error) {
+              console.log(
+                `innerStart: kserve infsvc fetch from rm ${rm.id} mv ${mv.id} kubeflow is ${kis.id} produced error: ${error}`,
+              );
+            }
+
+            if (!kserveIS) {
+              continue;
+            }
+
+            // Call backstage printers with both KubeFlow and KServe (Go line 759-776)
+            try {
+              await innerStartCallBackstagePrinters(
+                kfmr as KfmrClientType,
+                rm,
+                mv,
+                kis,
+                kserveIS,
+                mvArtifacts,
+                replacer,
+                importKey,
+                lastUpdateTimeSinceEpoch,
+                config,
+              );
+            } catch (error) {
+              console.error(
+                `innerStart: error from call backstage printers: ${error}`,
+              );
+            }
+
+            // Break since only one kubeflow infsvc can match to kserve infsvc (Go line 776)
+            foundKServe = true;
+            break;
+          }
+
+          // If no KServe match found, call backstage printers without KServe (Go line 778-791)
+          if (!foundKServe) {
+            try {
+              await innerStartCallBackstagePrinters(
+                kfmr as KfmrClientType,
+                rm,
+                mv,
+                null,
+                null,
+                mvArtifacts,
+                replacer,
+                importKey,
+                lastUpdateTimeSinceEpoch,
+                config,
+              );
+            } catch (error) {
+              console.error(
+                `innerStart: error from call backstage printers (no kserve): ${error}`,
+              );
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`innerStart: err looping over KFMR ${registryKey}:`, error);
+      continue;
+    }
   }
 
   // Step 2: List all KServe InferenceServices (lines 796-824 in Go)

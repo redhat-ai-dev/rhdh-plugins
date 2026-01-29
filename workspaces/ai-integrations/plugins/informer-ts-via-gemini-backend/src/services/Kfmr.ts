@@ -744,5 +744,143 @@ function buildTags(
   return Object.values(tagsMap);
 }
 
+// KFMR Client interface (for use with helper functions)
+export interface KFMRClient {
+  rootRegistryURL: string;
+  rootCatalogURL?: string;
+  token: string;
+  listRegisteredModels(): Promise<RegisteredModel[]>;
+  listInferenceServices(): Promise<KFMRInferenceService[]>;
+  listModelVersions(registeredModelId: string): Promise<ModelVersion[]>;
+  listModelArtifacts(modelVersionId: string): Promise<ModelArtifact[]>;
+  getServingEnvironment(
+    servingEnvironmentId: string,
+  ): Promise<ServingEnvironment>;
+  getModelVersion(modelVersionId: string): Promise<ModelVersion>;
+  getModelCard(
+    sourceId: string,
+    repositoryName: string,
+    modelName: string,
+  ): Promise<string | undefined>;
+}
+
+// Result type for loopOverKFMR
+export interface LoopOverKFMRResult {
+  registeredModels: RegisteredModel[];
+  modelVersionsMap: Map<string, ModelVersion[]>;
+  modelArtifactsMap: Map<string, Map<string, ModelArtifact[]>>;
+}
+
+// Helper function: callKubeflowREST
+// Converted from callKubeflowREST (kfmr.go line 110-140)
+async function callKubeflowREST(
+  registeredModelId: string,
+  kfmr: KFMRClient,
+): Promise<{
+  modelVersions: ModelVersion[];
+  modelArtifacts: Map<string, ModelArtifact[]>;
+}> {
+  const finalMVS: ModelVersion[] = [];
+  const ma = new Map<string, ModelArtifact[]>();
+
+  // List model versions (Go line 112)
+  const mvs = await kfmr.listModelVersions(registeredModelId);
+
+  for (const mv of mvs) {
+    // Skip archived model versions (Go line 119-122)
+    if (mv.state === ModelVersionState.Archived) {
+      console.log(
+        `callKubeflowREST: skipping archived model version ${mv.name}`,
+      );
+      continue;
+    }
+
+    finalMVS.push(mv);
+
+    if (!mv.id) continue;
+
+    // List model artifacts (Go line 125)
+    let artifacts = await kfmr.listModelArtifacts(mv.id);
+
+    // If no artifacts found for model version, try with registered model ID (Go line 130-136)
+    if (artifacts.length === 0) {
+      artifacts = await kfmr.listModelArtifacts(registeredModelId);
+    }
+
+    ma.set(mv.id, artifacts);
+  }
+
+  return { modelVersions: finalMVS, modelArtifacts: ma };
+}
+
+// Helper function: loopOverKFMR
+// Converted from LoopOverKFMR (kfmr.go line 32-91)
+export async function loopOverKFMR(
+  kfmr: KFMRClient,
+): Promise<LoopOverKFMRResult> {
+  const rmArray: RegisteredModel[] = [];
+  const mvsMap = new Map<string, ModelVersion[]>();
+  const masMap = new Map<string, Map<string, ModelArtifact[]>>();
+
+  // List all registered models (Go line 40)
+  const rms = await kfmr.listRegisteredModels();
+
+  for (const rm of rms) {
+    // Skip archived registered models (Go line 47-50)
+    if (rm.state === RegisteredModelState.Archived) {
+      console.log(
+        `loopOverKFMR: skipping archived registered model ${rm.name}`,
+      );
+      continue;
+    }
+
+    if (!rm.id) {
+      console.log(
+        `loopOverKFMR: registered model ${rm.name} has no ID, skipping`,
+      );
+      continue;
+    }
+
+    // Get model versions and artifacts (Go line 53)
+    const { modelVersions, modelArtifacts } = await callKubeflowREST(
+      rm.id,
+      kfmr,
+    );
+
+    rmArray.push(rm);
+    mvsMap.set(sanitizeName(rm.name), modelVersions);
+    masMap.set(sanitizeName(rm.name), modelArtifacts);
+  }
+
+  return {
+    registeredModels: rmArray,
+    modelVersionsMap: mvsMap,
+    modelArtifactsMap: masMap,
+  };
+}
+
+// Helper function: getKubeFlowInferenceServicesForModelVersion
+// Converted from GetKubeFlowInferenceServicesForModelVersion (kfmr.go line 93-108)
+export async function getKubeFlowInferenceServicesForModelVersion(
+  kfmr: KFMRClient,
+  mv: ModelVersion,
+): Promise<KFMRInferenceService[]> {
+  // List all inference services (Go line 95)
+  const isl = await kfmr.listInferenceServices();
+
+  // Filter to only include inference services for this model version (Go line 100-105)
+  const mvISL: KFMRInferenceService[] = [];
+  for (const is of isl) {
+    if (is.modelVersionId && is.modelVersionId === mv.id) {
+      mvISL.push(is);
+    }
+  }
+
+  console.log(
+    `getKubeFlowInferenceServicesForModelVersion: total num kubeflow infsvc ${isl.length}, num matched to model version ${mvISL.length}`,
+  );
+  return mvISL;
+}
+
 // Export additional helper functions that may be needed
 export { sanitizeName, sanitizeModelVersion };
