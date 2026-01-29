@@ -221,6 +221,7 @@ export interface ReconcilerConfig {
   defaultOwner: string;
   k8sToken?: string; // Kubernetes authentication token
   routeClient?: any; // OpenShift route client (TODO: add proper type)
+  informer?: k8s.Informer<InferenceService> & k8s.ObjectCache<InferenceService>; // KServe InferenceService informer
 }
 
 // Helper function to sanitize names (matching Go util.SanitizeName)
@@ -1228,13 +1229,13 @@ export const setupInformer = async () => {
   const listFn: k8s.ListPromise<InferenceService> = () =>
     client.listClusterCustomObject(group, version, plural) as any;
 
-  const informerInstance = k8s.makeInformer(
+  config.informer = k8s.makeInformer(
     kc,
     `/apis/${group}/${version}/${plural}`,
     listFn,
   );
 
-  informerInstance.on('add', async (obj: InferenceService) => {
+  config.informer.on('add', async (obj: InferenceService) => {
     console.log(
       `Added: ${obj.metadata.name} in namespace ${obj.metadata.namespace}`,
     );
@@ -1250,7 +1251,7 @@ export const setupInformer = async () => {
     }
   });
 
-  informerInstance.on('update', async (obj: InferenceService) => {
+  config.informer.on('update', async (obj: InferenceService) => {
     console.log(
       `Updated: ${obj.metadata.name} in namespace ${obj.metadata.namespace}`,
     );
@@ -1266,7 +1267,7 @@ export const setupInformer = async () => {
     }
   });
 
-  informerInstance.on('delete', async (obj: InferenceService) => {
+  config.informer.on('delete', async (obj: InferenceService) => {
     console.log(
       `Deleted: ${obj.metadata.name} in namespace ${obj.metadata.namespace}`,
     );
@@ -1292,16 +1293,16 @@ export const setupInformer = async () => {
     }
   });
 
-  informerInstance.on('error', (err: any) => {
+  config.informer.on('error', (err: any) => {
     console.error('Informer error:', err);
     // Restart informer after a delay
     setTimeout(() => {
-      informerInstance.start();
+      config.informer?.start();
     }, 5000);
   });
 
   console.log('Starting informer for InferenceServices...');
-  await informerInstance.start();
+  await config.informer.start();
   console.log('Informer started.');
 
   // Optional: Start background polling to supplement the informer
@@ -1327,8 +1328,8 @@ export const setupInformer = async () => {
     }, pollingInterval);
 
     // Store the timer in case we need to stop it later
-    (informerInstance as any).__pollingTimer = pollingTimer;
+    (config.informer as any).__pollingTimer = pollingTimer;
   }
 
-  return informerInstance;
+  return config.informer;
 };
