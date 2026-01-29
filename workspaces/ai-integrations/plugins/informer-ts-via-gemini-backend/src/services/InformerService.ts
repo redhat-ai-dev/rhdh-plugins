@@ -242,6 +242,81 @@ function buildImportKeyAndURI(
   return [importKey, uri];
 }
 
+// Helper function to list InferenceServices from informer cache or API
+// First tries the informer cache, then falls back to API if cache is empty
+async function listInferenceServices(
+  client: k8s.CustomObjectsApi,
+  informer?: k8s.Informer<InferenceService> & k8s.ObjectCache<InferenceService>,
+  labelFilter?: { [key: string]: string },
+): Promise<InferenceService[]> {
+  // First try to get from informer cache
+  if (informer) {
+    const cachedList = informer.list() as InferenceService[];
+    if (cachedList && cachedList.length > 0) {
+      console.log(
+        `listInferenceServices: Got ${cachedList.length} InferenceServices from informer cache`,
+      );
+
+      // Apply label filter if provided
+      if (labelFilter && Object.keys(labelFilter).length > 0) {
+        const filtered = cachedList.filter(is => {
+          if (!is.metadata.labels) return false;
+          for (const [key, value] of Object.entries(labelFilter)) {
+            if (is.metadata.labels[key] !== value) {
+              return false;
+            }
+          }
+          return true;
+        });
+        console.log(
+          `listInferenceServices: Filtered to ${filtered.length} InferenceServices by labels`,
+        );
+        if (filtered.length > 0) {
+          return filtered;
+        }
+      } else {
+        return cachedList;
+      }
+    }
+  }
+
+  // Fall back to API call
+  console.log(
+    'listInferenceServices: Informer cache empty, falling back to API',
+  );
+  try {
+    // Build label selector string if filter provided
+    let labelSelector: string | undefined;
+    if (labelFilter && Object.keys(labelFilter).length > 0) {
+      labelSelector = Object.entries(labelFilter)
+        .map(([k, v]) => `${k}=${v}`)
+        .join(',');
+    }
+
+    const response = await client.listClusterCustomObject(
+      group,
+      version,
+      plural,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      labelSelector,
+    );
+
+    const items = (response.body as any).items as InferenceService[];
+    console.log(
+      `listInferenceServices: Got ${
+        items?.length || 0
+      } InferenceServices from API`,
+    );
+    return items || [];
+  } catch (error) {
+    console.error('listInferenceServices: Error listing from API:', error);
+    return [];
+  }
+}
+
 // Helper function to check if KServe InferenceService maps to KFMR model
 // Converted from Go util.KServeInferenceServiceMapping (utils.go line 123)
 function kserveInferenceServiceMapping(
@@ -1043,28 +1118,19 @@ async function innerStart(
 
             // Find matching KServe inference service by labels (Go line 734-753)
             let kserveIS: InferenceService | null = null;
-            try {
-              const isList = await client.listClusterCustomObject(
-                group,
-                version,
-                plural,
-                undefined,
-                undefined,
-                undefined,
-                undefined,
-                `${INF_SVC_RM_ID_LABEL}=${rm.id},${INF_SVC_MV_ID_LABEL}=${mv.id}`,
-              );
-
-              const items = (isList.body as any).items as InferenceService[];
-              if (items && items.length > 0) {
-                kserveIS = items[0];
-                console.log(
-                  `innerStart: found kserve infsvc ${kserveIS.metadata.namespace}:${kserveIS.metadata.name} from rm ${rm.id} mv ${mv.id} kubeflow is ${kis.id}`,
-                );
-              }
-            } catch (error) {
+            const labelFilter = {
+              [INF_SVC_RM_ID_LABEL]: rm.id!,
+              [INF_SVC_MV_ID_LABEL]: mv.id!,
+            };
+            const matchingISList = await listInferenceServices(
+              client,
+              config.informer,
+              labelFilter,
+            );
+            if (matchingISList.length > 0) {
+              kserveIS = matchingISList[0];
               console.log(
-                `innerStart: kserve infsvc fetch from rm ${rm.id} mv ${mv.id} kubeflow is ${kis.id} produced error: ${error}`,
+                `innerStart: found kserve infsvc ${kserveIS.metadata.namespace}:${kserveIS.metadata.name} from rm ${rm.id} mv ${mv.id} kubeflow is ${kis.id}`,
               );
             }
 
@@ -1130,14 +1196,10 @@ async function innerStart(
   console.log('innerStart: Listing all KServe InferenceServices');
 
   try {
-    const response = await client.listClusterCustomObject(
-      group,
-      version,
-      plural,
+    const inferenceServices = await listInferenceServices(
+      client,
+      config.informer,
     );
-
-    const inferenceServices = (response.body as any)
-      .items as InferenceService[];
     console.log(
       `innerStart: Found ${inferenceServices.length} KServe InferenceServices`,
     );
