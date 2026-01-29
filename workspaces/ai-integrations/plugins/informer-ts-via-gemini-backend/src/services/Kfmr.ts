@@ -43,6 +43,8 @@ const GET_SERVING_ENV_URI = '/serving_environments/%s';
 const GET_MODEL_ARTIFACT_URI = '/model_artifacts/%s';
 // @ts-ignore
 const GET_MODEL_VERSION_URI = '/model_versions/%s';
+// Catalog API URI (from pkg/rest/kfmr.go line 25)
+const GET_CATALOG_MODEL_URI = '/sources/%s/models/%s/%s';
 
 // Helper function for making GET requests to the model registry
 // Converted from Go getFromModelRegistry method (rest.go line 57-71)
@@ -203,8 +205,6 @@ export async function setupKFMR(
     }
 
     // Create the KFMRClient instance
-    // Note: We'll need to implement the actual client wrapper that matches the KFMRClient interface
-    // @ts-ignore
     const kfmrClient = {
       rootRegistryURL,
       rootCatalogURL,
@@ -227,22 +227,76 @@ export async function setupKFMR(
         );
         return data.items || [];
       },
-      // @ts-ignore
-      listModelVersions: async (registeredModelId: string) => [], // @ts-ignore
-      listModelArtifacts: async (modelVersionId: string) => [],
-      getServingEnvironment: async (servingEnvironmentId: string) => ({
-        id: servingEnvironmentId,
-      }),
-      getModelVersion: async (modelVersionId: string) => ({
-        id: modelVersionId,
-        name: '',
-      }),
+      // Converted from ListModelVersions (modelversion.go line 10-22)
+      listModelVersions: async (
+        registeredModelId: string,
+      ): Promise<ModelVersion[]> => {
+        const url =
+          rootRegistryURL +
+          LIST_VERSIONS_OFF_REG_MODELS_URI.replace('%s', registeredModelId);
+        const data: ModelVersionList = await getFromModelRegistry(
+          url,
+          kfmrToken,
+        );
+        return data.items || [];
+      },
+      // Converted from ListModelArtifacts (modelartifact.go line 11-23)
+      listModelArtifacts: async (
+        modelVersionId: string,
+      ): Promise<ModelArtifact[]> => {
+        const url =
+          rootRegistryURL +
+          LIST_ARTIFACTS_OFF_VERSIONS_URI.replace('%s', modelVersionId);
+        const data: ModelArtifactList = await getFromModelRegistry(
+          url,
+          kfmrToken,
+        );
+        return data.items || [];
+      },
+      // Converted from GetServingEnvironment (servingenvironment.go line 10-22)
+      getServingEnvironment: async (
+        servingEnvironmentId: string,
+      ): Promise<ServingEnvironment> => {
+        const url =
+          rootRegistryURL +
+          GET_SERVING_ENV_URI.replace('%s', servingEnvironmentId);
+        const data: ServingEnvironment = await getFromModelRegistry(
+          url,
+          kfmrToken,
+        );
+        return data;
+      },
+      // Converted from GetModelVersions (modelversion.go line 24-36)
+      getModelVersion: async (
+        modelVersionId: string,
+      ): Promise<ModelVersion> => {
+        const url =
+          rootRegistryURL + GET_MODEL_VERSION_URI.replace('%s', modelVersionId);
+        const data: ModelVersion = await getFromModelRegistry(url, kfmrToken);
+        return data;
+      },
+      // Converted from GetModelCard (catalogmodel.go line 44-50)
       getModelCard: async (
-        // @ts-ignore
-        modelSourceClass: string, // @ts-ignore
-        modelSourceGroup: string, // @ts-ignore
-        modelSourceName: string,
-      ) => undefined,
+        sourceId: string,
+        repositoryName: string,
+        modelName: string,
+      ): Promise<string | undefined> => {
+        if (!rootCatalogURL) {
+          console.log('getModelCard: no catalog URL configured');
+          return undefined;
+        }
+        // URL-encode spaces (Go line 27-30)
+        const encodedSourceId = sourceId.replace(/ /g, '%20');
+        const encodedRepoName = repositoryName.replace(/ /g, '%20');
+        const encodedModelName = modelName.replace(/ /g, '%20');
+        const url =
+          rootCatalogURL +
+          GET_CATALOG_MODEL_URI.replace('%s', encodedSourceId)
+            .replace('%s', encodedRepoName)
+            .replace('%s', encodedModelName);
+        const data: CatalogModel = await getFromModelRegistry(url, kfmrToken);
+        return data.readme;
+      },
     };
 
     console.log(
@@ -343,6 +397,10 @@ export interface ModelVersion {
   customProperties?: { [key: string]: MetadataValue };
 }
 
+export interface ModelVersionList {
+  items: ModelVersion[];
+}
+
 export interface ModelArtifact {
   id?: string;
   name?: string;
@@ -353,6 +411,10 @@ export interface ModelArtifact {
   uri?: string;
   description?: string;
   customProperties?: { [key: string]: MetadataValue };
+}
+
+export interface ModelArtifactList {
+  items: ModelArtifact[];
 }
 
 export interface KFMRInferenceService {
@@ -368,6 +430,23 @@ export interface KFMRInferenceService {
 
 export interface InferenceServiceList {
   items: KFMRInferenceService[];
+}
+
+export interface ServingEnvironment {
+  id?: string;
+  name?: string;
+  description?: string;
+  customProperties?: { [key: string]: MetadataValue };
+}
+
+// CatalogModel interface (from catalog openapi package)
+export interface CatalogModel {
+  id?: string;
+  name?: string;
+  description?: string;
+  readme?: string;
+  sourceId?: string;
+  repositoryName?: string;
 }
 
 export interface KServeInferenceService {
