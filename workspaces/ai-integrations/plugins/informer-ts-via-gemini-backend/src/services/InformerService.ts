@@ -1258,6 +1258,20 @@ export const setupInformer = async () => {
   const client = kc.makeApiClient(k8s.CustomObjectsApi);
   // const coreClient = kc.makeApiClient(k8s.CoreV1Api);
 
+  let k8sToken: string | undefined = '';
+  const currentUser = kc.getCurrentUser();
+  if (currentUser !== null) {
+    k8sToken = currentUser.token;
+  } else {
+    const users = kc.getUsers();
+    for (const user of users) {
+      if (user.token !== null) {
+        k8sToken = user.token;
+        break;
+      }
+    }
+  }
+
   // Initialize configuration from environment variables
   const config: ReconcilerConfig = {
     kfmrClients: new Map(),
@@ -1266,7 +1280,7 @@ export const setupInformer = async () => {
     storageURL: process.env.STORAGE_URL || 'http://localhost:7070',
     defaultLifecycle: process.env.LIFECYCLE || 'production',
     defaultOwner: process.env.OWNER || 'default-owner',
-    k8sToken: undefined, // TODO: Extract token from kc if needed
+    k8sToken: k8sToken,
     routeClient: client,
   };
 
