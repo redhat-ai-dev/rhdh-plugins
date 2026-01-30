@@ -18,6 +18,8 @@
 
 import type { ReconcilerConfig, Route } from './InformerService';
 
+import { route_group, route_version, route_plural } from './InformerService';
+
 // Constants (from kfmr.go line 26-30)
 const TAG_REGEXP = '^[a-z0-9:+#]+(\\-[a-z0-9:+#]+)*$';
 
@@ -108,18 +110,41 @@ export async function setupKFMR(
       // Handle namespace-based route lookup (Go line 135-149)
       if (ns === '' && config.routeClient) {
         // List all routes and find by name
-        const routes = await config.routeClient.routes(ns).list();
-        if (routes && routes.items && routes.items.length > 0) {
-          for (const route of routes.items) {
-            if (route.metadata.name === name) {
-              kfmrRoute = route;
-              break;
-            }
+        const listResponse =
+          await config.routeClient.listNamespacedCustomObject(
+            route_group,
+            route_version,
+            ns,
+            route_plural,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            false,
+          );
+        const routes = (listResponse.body as any).items as Route[];
+        for (const route of routes) {
+          if (route.metadata.name === name) {
+            kfmrRoute = route;
+            break;
           }
         }
       } else if (config.routeClient) {
         // Get specific route by namespace and name (Go line 148)
-        kfmrRoute = await config.routeClient.routes(ns).get(name);
+        const getResponse = await config.routeClient.getNamespacedCustomObject(
+          route_group,
+          route_version,
+          ns,
+          route_plural,
+          name,
+          undefined,
+        );
+        kfmrRoute = getResponse.body as Route;
       }
 
       // Store route if it has ingress (Go line 154-156)
@@ -144,27 +169,39 @@ export async function setupKFMR(
   // If no routes found via env var, try label-based query (Go line 160-180)
   if (config.kfmrRoutes.size === 0 && config.routeClient) {
     try {
-      const routes = await config.routeClient.routes('__all__').list({
-        labelSelector: 'app.kubernetes.io/managed-by=model-registry-operator',
-      });
+      const listResponse = await config.routeClient.listNamespacedCustomObject(
+        route_group,
+        route_version,
+        '',
+        route_plural,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        'app.kubernetes.io/managed-by=model-registry-operator',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        false,
+      );
+      const routes = (listResponse.body as any).items as Route[];
 
-      if (routes && routes.items && routes.items.length > 0) {
-        for (const route of routes.items) {
-          const key = `${route.metadata.namespace}:${route.metadata.name}`;
-          console.log(`setupKFMR: query found route ${key}`);
+      for (const route of routes) {
+        const key = `${route.metadata.namespace}:${route.metadata.name}`;
+        console.log(`setupKFMR: query found route ${key}`);
 
-          if (route.metadata.name.includes('catalog')) {
-            // Catalog is supposed to be a singleton (Go line 171-175)
-            console.log(`setupKFMR: found catalog ${route.metadata.name}`);
-            config.kfmrCatalogRoute = route;
-            continue;
-          }
-
-          console.log(
-            `setupKFMR: found registry ${route.metadata.name} storing into map with key ${key}`,
-          );
-          config.kfmrRoutes.set(key, route);
+        if (route.metadata.name.includes('catalog')) {
+          // Catalog is supposed to be a singleton (Go line 171-175)
+          console.log(`setupKFMR: found catalog ${route.metadata.name}`);
+          config.kfmrCatalogRoute = route;
+          continue;
         }
+
+        console.log(
+          `setupKFMR: found registry ${route.metadata.name} storing into map with key ${key}`,
+        );
+        config.kfmrRoutes.set(key, route);
       }
     } catch (error) {
       console.error('setupKFMR: error listing routes by label:', error);

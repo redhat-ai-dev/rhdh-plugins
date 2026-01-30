@@ -30,9 +30,13 @@ import {
   type KServeModelCatalog,
 } from './KServe';
 
-const group = 'serving.kserve.io';
-const version = 'v1beta1';
-const plural = 'inferenceservices';
+const inference_service_group = 'serving.kserve.io';
+const inference_service_version = 'v1beta1';
+const inference_service_plural = 'inferenceservices';
+
+export const route_group = 'route.openshift.io';
+export const route_version = 'v1';
+export const route_plural = 'routes';
 
 // Model card metadata interface (from server.go line 30-35)
 interface ModelCardMetadata {
@@ -220,7 +224,7 @@ export interface ReconcilerConfig {
   defaultLifecycle: string;
   defaultOwner: string;
   k8sToken?: string; // Kubernetes authentication token
-  routeClient?: any; // OpenShift route client (TODO: add proper type)
+  routeClient?: k8s.CustomObjectsApi; // OpenShift route client
   informer?: k8s.Informer<InferenceService> & k8s.ObjectCache<InferenceService>; // KServe InferenceService informer
 }
 
@@ -293,10 +297,11 @@ async function listInferenceServices(
         .join(',');
     }
 
-    const response = await client.listClusterCustomObject(
-      group,
-      version,
-      plural,
+    const response = await client.listNamespacedCustomObject(
+      inference_service_group,
+      inference_service_version,
+      '',
+      inference_service_plural,
       undefined,
       undefined,
       undefined,
@@ -911,27 +916,6 @@ async function processModelCatalog(
   }
 }
 
-// Helper function to post current key set to storage
-async function postCurrentKeySet(
-  keys: string[],
-  config: ReconcilerConfig,
-): Promise<void> {
-  console.log(`Posting current key set to storage: ${keys.length} keys`, keys);
-
-  // TODO: Implement actual HTTP POST to storage service
-  // const response = await fetch(`${config.storageURL}/api/v1/keys`, {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ keys }),
-  // });
-  //
-  // if (response.status !== 200 && response.status !== 201) {
-  //   throw new Error(`Storage returned status ${response.status}`);
-  // }
-
-  console.log(`Would post key set to storage at: ${config.storageURL}`);
-}
-
 // Helper function to call backstage printers and process model catalog
 // Converted from innerStartCallBackstagePrinters (controller.go line 839-878)
 async function innerStartCallBackstagePrinters(
@@ -1239,14 +1223,29 @@ async function innerStart(
     console.error('innerStart: Error listing KServe InferenceServices:', error);
   }
 
-  // Step 3: Post current key set to storage (lines 826-835 in Go)
-  try {
-    await postCurrentKeySet(keys, config);
+  // Step 3: Clean up stale entries from modelCatalog (Go lines 826-835)
+  // Remove any model catalog entries whose keys are no longer present in the current reconciliation
+  const keysToDelete: string[] = [];
+  for (const catalogKey of modelCatalog.keys()) {
+    if (!keys.includes(catalogKey)) {
+      console.log(
+        `innerStart: Model catalog key ${catalogKey} no longer exists in current keys, marking for deletion`,
+      );
+      keysToDelete.push(catalogKey);
+    }
+  }
+
+  for (const keyToDelete of keysToDelete) {
+    modelCatalog.delete(keyToDelete);
     console.log(
-      `innerStart: Successfully posted ${keys.length} keys to storage`,
+      `innerStart: Deleted stale model catalog entry: ${keyToDelete}`,
     );
-  } catch (error) {
-    console.error('innerStart: Error posting current key set:', error);
+  }
+
+  if (keysToDelete.length > 0) {
+    console.log(
+      `innerStart: Cleaned up ${keysToDelete.length} stale model catalog entries`,
+    );
   }
 
   console.log('innerStart: Reconciliation sync complete');
@@ -1268,7 +1267,7 @@ export const setupInformer = async () => {
     defaultLifecycle: process.env.LIFECYCLE || 'production',
     defaultOwner: process.env.OWNER || 'default-owner',
     k8sToken: undefined, // TODO: Extract token from kc if needed
-    routeClient: undefined, // TODO: Create OpenShift route client if available
+    routeClient: client,
   };
 
   console.log('Reconciler configuration (before setupKFMR):', {
@@ -1289,11 +1288,15 @@ export const setupInformer = async () => {
   }
 
   const listFn: k8s.ListPromise<InferenceService> = () =>
-    client.listClusterCustomObject(group, version, plural) as any;
+    client.listClusterCustomObject(
+      inference_service_group,
+      inference_service_version,
+      inference_service_plural,
+    ) as any;
 
   config.informer = k8s.makeInformer(
     kc,
-    `/apis/${group}/${version}/${plural}`,
+    `/apis/${inference_service_group}/${inference_service_version}/${inference_service_plural}`,
     listFn,
   );
 
