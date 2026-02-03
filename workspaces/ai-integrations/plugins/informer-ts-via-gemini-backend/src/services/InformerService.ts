@@ -27,10 +27,7 @@ import {
   sanitizeName as kfmrSanitizeName,
   setupKFMR,
 } from './Kfmr';
-import {
-  callBackstagePrinters as callKServeBackstagePrinters,
-  type KServeModelCatalog,
-} from './KServe';
+import { callBackstagePrinters as callKServeBackstagePrinters } from './KServe';
 
 const inference_service_group = 'serving.kserve.io';
 const inference_service_version = 'v1beta1';
@@ -54,7 +51,7 @@ const modelCards = new Map<string, ModelCardMetadata>();
 
 // Model catalog metadata interface
 interface ModelCatalogMetadata {
-  catalogData: ModelCatalog | KServeModelCatalog;
+  catalogData: ModelCatalog;
   lastUpdateTimeSinceEpoch: string;
   normalizerType: NormalizerType;
   updateCount: number;
@@ -521,7 +518,9 @@ async function processKFMR(
                 authentication,
               );
               console.log(
-                `processKFMR: Generated catalog data with ${catalogData.models.length} models and ${catalogData.modelServers.length} model servers`,
+                `processKFMR: Generated catalog data with ${
+                  catalogData.models.length
+                } models and ${catalogData.modelServer ? 1 : 0} model servers`,
               );
 
               // Build import key (Go line 515)
@@ -685,7 +684,9 @@ async function processKFMR(
               authentication,
             );
             console.log(
-              `processKFMR: Generated catalog data with ${catalogData.models.length} models and ${catalogData.modelServers.length} model servers`,
+              `processKFMR: Generated catalog data with ${
+                catalogData.models.length
+              } models and ${catalogData.modelServer ? 1 : 0} model servers`,
             );
 
             // Build import key (Go line 602)
@@ -822,7 +823,7 @@ async function reconcileInferenceService(
   let lastUpdateTimeSinceEpoch = '';
   let modelCardKey = '';
   let modelCard: string | undefined;
-  let catalogData: ModelCatalog | KServeModelCatalog | undefined;
+  let catalogData: ModelCatalog | undefined;
   let normalizerType = NormalizerType.KubeflowNormalizer;
 
   // Step 1: Process KFMR if routes are available (line 365-369 in Go)
@@ -868,7 +869,9 @@ async function reconcileInferenceService(
       authentication,
     );
     console.log(
-      `Generated KServe catalog data with ${catalogData.models.length} models and ${catalogData.modelServers.length} model servers`,
+      `Generated KServe catalog data with ${
+        catalogData.models.length
+      } models and ${catalogData.modelServer ? 1 : 0} model servers`,
     );
 
     // Build import key
@@ -906,13 +909,15 @@ async function processModelCatalog(
   lastUpdateTimeSinceEpoch: string,
   modelCardKey: string,
   modelCard: string | undefined,
-  catalogData: ModelCatalog | KServeModelCatalog,
+  catalogData: ModelCatalog,
 ): Promise<void> {
   console.log(
     `processModelCatalog - key: ${importKey}, type: ${normalizerType}, epoch: ${lastUpdateTimeSinceEpoch}, modelCardKey: ${modelCardKey}`,
   );
   console.log(
-    `processModelCatalog - catalogData has ${catalogData.models.length} models and ${catalogData.modelServers.length} model servers`,
+    `processModelCatalog - catalogData has ${
+      catalogData.models.length
+    } models and ${catalogData.modelServer ? 1 : 0} model servers`,
   );
 
   // Handle model catalog storage

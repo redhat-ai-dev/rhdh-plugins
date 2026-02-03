@@ -17,6 +17,13 @@
 // Converted from kfmr.go in model-catalog-bridge
 
 import type { ReconcilerConfig, Route } from './InformerService';
+import {
+  type ModelCatalog,
+  type Model,
+  type ModelServer,
+  type API,
+  Type as APIType,
+} from '@redhat-ai-dev/model-catalog-types';
 
 import { route_group, route_version, route_plural } from './InformerService';
 
@@ -617,37 +624,9 @@ function innerGetStringPropVal(
   return undefined;
 }
 
-// Model catalog interfaces
-export interface Model {
-  name: string;
-  owner: string;
-  lifecycle: string;
-  description: string;
-  tags: string[];
-  artifactLocationURL?: string;
-  annotations: { [key: string]: string };
-}
-
-export interface ModelServerAPI {
-  type: string;
-  url: string;
-  spec: string;
-}
-
-export interface ModelServer {
-  name: string;
-  owner: string;
-  lifecycle: string;
-  description: string;
-  tags: string[];
-  api: ModelServerAPI;
-  authentication?: boolean;
-}
-
-export interface ModelCatalog {
-  models: Model[];
-  modelServers: ModelServer[];
-}
+// Re-export types from @redhat-ai-dev/model-catalog-types
+export type { ModelCatalog, Model, ModelServer, API };
+export { APIType };
 
 // Sanitize name helper
 function sanitizeName(name: string): string {
@@ -718,8 +697,8 @@ function generateModelCatalog(
     lifecycle: getLifecycle(lifecycle, mv, rm),
     description: `${rm.description || ''}\n${mv.description || ''}`,
     tags: buildTags(rm, mv, mas),
-    api: {
-      type: 'openapi',
+    API: {
+      type: APIType.Openapi,
       url: '',
       spec: 'TBD',
     },
@@ -735,12 +714,14 @@ function generateModelCatalog(
     if (modelServer.name.length === 0) {
       modelServer.name = sanitizeName(kserveIS.metadata.name);
     }
-    modelServer.api.url =
-      kserveIS.status?.url || kserveIS.status?.address?.url || '';
+    if (modelServer.API) {
+      modelServer.API.url =
+        kserveIS.status?.url || kserveIS.status?.address?.url || '';
+    }
   }
   return {
     models: [model],
-    modelServers: modelServer ? [modelServer] : [],
+    modelServer: modelServer.name.length > 0 ? modelServer : undefined,
   };
 }
 

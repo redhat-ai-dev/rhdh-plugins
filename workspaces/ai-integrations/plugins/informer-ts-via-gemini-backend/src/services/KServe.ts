@@ -17,6 +17,12 @@
 // Converted from kserve.go in model-catalog-bridge
 
 import { PropertyKeys } from './Kfmr';
+import {
+  type ModelCatalog,
+  type Model,
+  type ModelServer,
+  Type as APIType,
+} from '@redhat-ai-dev/model-catalog-types';
 
 // Annotation prefix (from brdgtypes package)
 const ANNOTATION_PREFIX = 'model-catalog-bridge.ai.redhat.com/';
@@ -93,48 +99,8 @@ export interface KServeInferenceService {
   };
 }
 
-// Model catalog interfaces
-export interface KServeModel {
-  name: string;
-  owner: string;
-  lifecycle: string;
-  description: string;
-  tags: string[];
-  artifactLocationURL?: string;
-  ethics?: string;
-  howToUseURL?: string;
-  support?: string;
-  training?: string;
-  usage?: string;
-  license?: string;
-  annotations: { [key: string]: string };
-}
-
-export interface KServeModelServerAPI {
-  type: string;
-  url: string;
-  spec: string;
-  tags: string[];
-  annotations: { [key: string]: string };
-}
-
-export interface KServeModelServer {
-  name: string;
-  owner: string;
-  lifecycle: string;
-  description: string;
-  homepageURL?: string;
-  usage?: string;
-  tags: string[];
-  authentication: boolean;
-  api: KServeModelServerAPI;
-  annotations: { [key: string]: string };
-}
-
-export interface KServeModelCatalog {
-  models: KServeModel[];
-  modelServers: KServeModelServer[];
-}
+// Re-export types from @redhat-ai-dev/model-catalog-types for use by consumers
+export type { ModelCatalog, Model, ModelServer };
 
 // Helper function: Sanitize name
 function sanitizeName(name: string): string {
@@ -252,7 +218,7 @@ export async function callBackstagePrinters(
   lifecycle: string,
   is: KServeInferenceService,
   authentication: boolean = false,
-): Promise<KServeModelCatalog> {
+): Promise<ModelCatalog> {
   console.log(
     `KServe.callBackstagePrinters: namespace=${is.metadata.namespace}, name=${is.metadata.name}, authentication=${authentication}`,
   );
@@ -266,7 +232,7 @@ function generateModelCatalog(
   lifecycle: string,
   is: KServeInferenceService,
   authentication: boolean,
-): KServeModelCatalog {
+): ModelCatalog {
   const name = `${sanitizeName(getName(is))}`;
 
   // Get property values with fallbacks
@@ -279,7 +245,7 @@ function generateModelCatalog(
   const techdocsUrl = getStringPropVal(PropertyKeys.TechDocsKey, is);
 
   // Build model object (kserve.go line 646-674)
-  const model: KServeModel = {
+  const model: Model = {
     name: name,
     owner: sanitizeName(ownerValue),
     lifecycle: lifecycleValue,
@@ -298,8 +264,27 @@ function generateModelCatalog(
     },
   };
 
+  // Determine API type
+  const apiTypeStr = getStringPropVal(PropertyKeys.APITypeKey, is);
+  let apiType = APIType.Openapi;
+  if (apiTypeStr) {
+    switch (apiTypeStr.toLowerCase()) {
+      case 'graphql':
+        apiType = APIType.Graphql;
+        break;
+      case 'asyncapi':
+        apiType = APIType.Asyncapi;
+        break;
+      case 'grpc':
+        apiType = APIType.Grpc;
+        break;
+      default:
+        apiType = APIType.Openapi;
+    }
+  }
+
   // Build model server object (kserve.go line 679-698)
-  const modelServer: KServeModelServer = {
+  const modelServer: ModelServer = {
     name: sanitizeName(name),
     owner: sanitizeName(ownerValue),
     lifecycle: lifecycleValue,
@@ -308,19 +293,17 @@ function generateModelCatalog(
     usage: getStringPropVal(PropertyKeys.UsageKey, is),
     tags: getTagsFromLabels(is),
     authentication: authentication,
-    api: {
-      type: getStringPropVal(PropertyKeys.APITypeKey, is) || 'openapi',
+    API: {
+      type: apiType,
       spec: getStringPropVal(PropertyKeys.APISpecKey, is) || 'TBD',
       tags: getTagsFromLabels(is),
       url: is.status?.url?.toString() || is.status?.address?.url || '',
-      annotations: {},
     },
-    annotations: {},
   };
 
   return {
     models: [model],
-    modelServers: [modelServer],
+    modelServer: modelServer,
   };
 }
 
