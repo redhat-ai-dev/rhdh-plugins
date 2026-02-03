@@ -251,12 +251,13 @@ export async function callBackstagePrinters(
   owner: string,
   lifecycle: string,
   is: KServeInferenceService,
+  authentication: boolean = false,
 ): Promise<KServeModelCatalog> {
   console.log(
-    `KServe.callBackstagePrinters: namespace=${is.metadata.namespace}, name=${is.metadata.name}`,
+    `KServe.callBackstagePrinters: namespace=${is.metadata.namespace}, name=${is.metadata.name}, authentication=${authentication}`,
   );
 
-  return generateModelCatalog(owner, lifecycle, is);
+  return generateModelCatalog(owner, lifecycle, is, authentication);
 }
 
 // Generate model catalog (kserve.go line 269-276)
@@ -264,6 +265,7 @@ function generateModelCatalog(
   owner: string,
   lifecycle: string,
   is: KServeInferenceService,
+  authentication: boolean,
 ): KServeModelCatalog {
   const name = `${sanitizeName(getName(is))}`;
 
@@ -305,7 +307,7 @@ function generateModelCatalog(
     homepageURL: getStringPropVal(PropertyKeys.HomepageURLKey, is),
     usage: getStringPropVal(PropertyKeys.UsageKey, is),
     tags: getTagsFromLabels(is),
-    authentication: false, // TODO: Implement service account check
+    authentication: authentication,
     api: {
       type: getStringPropVal(PropertyKeys.APITypeKey, is) || 'openapi',
       spec: getStringPropVal(PropertyKeys.APISpecKey, is) || 'TBD',

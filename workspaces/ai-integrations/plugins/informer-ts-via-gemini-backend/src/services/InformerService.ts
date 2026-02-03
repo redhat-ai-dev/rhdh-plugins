@@ -227,6 +227,7 @@ export interface ReconcilerConfig {
   defaultOwner: string;
   k8sToken?: string; // Kubernetes authentication token
   routeClient?: k8s.CustomObjectsApi; // OpenShift route client
+  coreClient?: k8s.CoreV1Api; // Kubernetes core API client for ServiceAccounts
   informer?: k8s.Informer<InferenceService> & k8s.ObjectCache<InferenceService>; // KServe InferenceService informer
 }
 
@@ -246,6 +247,53 @@ function buildImportKeyAndURI(
   const importKey = `${sanitizedNs}/${sanitizedName}`;
   const uri = `/models/${importKey}`;
   return [importKey, uri];
+}
+
+// Helper function to get authentication status for an InferenceService
+// Converted from Go GetAuthentication method (kserve.go line 358-382)
+// When auth is configured, a service account is created whose name is prefixed with
+// the inference service's name, and with the inference service set as an owner reference
+async function getAuthentication(
+  coreClient: k8s.CoreV1Api | undefined,
+  namespace: string,
+  inferenceServiceName: string,
+): Promise<boolean> {
+  if (!coreClient) {
+    console.log(
+      `getAuthentication: No coreClient available for ${namespace}/${inferenceServiceName}`,
+    );
+    return false;
+  }
+
+  try {
+    const response = await coreClient.listNamespacedServiceAccount(namespace);
+    const saList = response.body.items;
+
+    for (const sa of saList) {
+      if (!sa.metadata?.ownerReferences) {
+        continue;
+      }
+
+      for (const ownerRef of sa.metadata.ownerReferences) {
+        if (
+          ownerRef.kind === 'InferenceService' &&
+          ownerRef.name === inferenceServiceName
+        ) {
+          console.log(
+            `getAuthentication: Found ServiceAccount ${sa.metadata.name} with InferenceService owner reference for ${namespace}/${inferenceServiceName}`,
+          );
+          return true;
+        }
+      }
+    }
+  } catch (error) {
+    console.error(
+      `getAuthentication: Error listing ServiceAccounts for ${namespace}/${inferenceServiceName}:`,
+      error,
+    );
+  }
+
+  return false;
 }
 
 // Helper function to list InferenceServices from informer cache or API
@@ -454,6 +502,13 @@ async function processKFMR(
                 continue;
               }
 
+              // Get authentication status for the KServe InferenceService
+              const authentication = await getAuthentication(
+                config.coreClient,
+                is.metadata.namespace,
+                is.metadata.name,
+              );
+
               // Call backstage printers (Go line 497)
               const catalogData: ModelCatalog = await callBackstagePrinters(
                 config.defaultOwner,
@@ -463,6 +518,7 @@ async function processKFMR(
                 mas,
                 null,
                 is as KServeInferenceService,
+                authentication,
               );
               console.log(
                 `processKFMR: Generated catalog data with ${catalogData.models.length} models and ${catalogData.modelServers.length} model servers`,
@@ -610,6 +666,13 @@ async function processKFMR(
               continue;
             }
 
+            // Get authentication status for the KServe InferenceService
+            const authentication = await getAuthentication(
+              config.coreClient,
+              is.metadata.namespace,
+              is.metadata.name,
+            );
+
             // Call backstage printers (Go line 585)
             const catalogData: ModelCatalog = await callBackstagePrinters(
               config.defaultOwner,
@@ -619,6 +682,7 @@ async function processKFMR(
               mas,
               kfmrIS as KfmrInferenceServiceType,
               is as KServeInferenceService,
+              authentication,
             );
             console.log(
               `processKFMR: Generated catalog data with ${catalogData.models.length} models and ${catalogData.modelServers.length} model servers`,
@@ -788,12 +852,20 @@ async function reconcileInferenceService(
       return;
     }
 
+    // Get authentication status by checking for ServiceAccount with InferenceService owner reference
+    const authentication = await getAuthentication(
+      config.coreClient,
+      namespace,
+      name,
+    );
+
     // Call backstage printers (equivalent to kserve.CallBackstagePrinters in Go)
     console.log(`Calling backstage printers for ${namespace}/${name}`);
     catalogData = await callKServeBackstagePrinters(
       config.defaultOwner,
       config.defaultLifecycle,
       is,
+      authentication,
     );
     console.log(
       `Generated KServe catalog data with ${catalogData.models.length} models and ${catalogData.modelServers.length} model servers`,
@@ -931,6 +1003,7 @@ async function innerStartCallBackstagePrinters(
   importKey: string,
   lastUpdateTimeSinceEpoch: string,
   config: ReconcilerConfig,
+  authentication: boolean = false,
 ): Promise<void> {
   // Call backstage printers (Go line 852)
   const catalogData: ModelCatalog = await callBackstagePrinters(
@@ -941,6 +1014,7 @@ async function innerStartCallBackstagePrinters(
     maa,
     kfmrIS as KfmrInferenceServiceType | null,
     kserveIS as KServeInferenceService | null,
+    authentication,
   );
 
   // Get model card if catalog URL exists (Go line 859-870)
@@ -1072,6 +1146,7 @@ async function innerStart(
           // If no KubeFlow inference services, call backstage printers without KServe (Go line 706-722)
           if (mvISL.length === 0) {
             try {
+              // No KServe InferenceService, so authentication is false
               await innerStartCallBackstagePrinters(
                 kfmr as KfmrClientType,
                 rm,
@@ -1083,6 +1158,7 @@ async function innerStart(
                 importKey,
                 lastUpdateTimeSinceEpoch,
                 config,
+                false,
               );
             } catch (error) {
               console.log(
@@ -1124,6 +1200,13 @@ async function innerStart(
               continue;
             }
 
+            // Get authentication status for the KServe InferenceService
+            const authentication = await getAuthentication(
+              config.coreClient,
+              kserveIS.metadata.namespace,
+              kserveIS.metadata.name,
+            );
+
             // Call backstage printers with both KubeFlow and KServe (Go line 759-776)
             try {
               await innerStartCallBackstagePrinters(
@@ -1137,6 +1220,7 @@ async function innerStart(
                 importKey,
                 lastUpdateTimeSinceEpoch,
                 config,
+                authentication,
               );
             } catch (error) {
               console.error(
@@ -1152,6 +1236,7 @@ async function innerStart(
           // If no KServe match found, call backstage printers without KServe (Go line 778-791)
           if (!foundKServe) {
             try {
+              // No KServe InferenceService, so authentication is false
               await innerStartCallBackstagePrinters(
                 kfmr as KfmrClientType,
                 rm,
@@ -1163,6 +1248,7 @@ async function innerStart(
                 importKey,
                 lastUpdateTimeSinceEpoch,
                 config,
+                false,
               );
             } catch (error) {
               console.error(
@@ -1257,7 +1343,7 @@ export const setupInformer = async () => {
   kc.loadFromDefault();
 
   const client = kc.makeApiClient(k8s.CustomObjectsApi);
-  // const coreClient = kc.makeApiClient(k8s.CoreV1Api);
+  const coreClient = kc.makeApiClient(k8s.CoreV1Api);
 
   let k8sToken: string | undefined = '';
   const currentUser = kc.getCurrentUser();
@@ -1283,6 +1369,7 @@ export const setupInformer = async () => {
     defaultOwner: process.env.OWNER || 'default-owner',
     k8sToken: k8sToken,
     routeClient: client,
+    coreClient: coreClient,
   };
 
   console.log('Reconciler configuration (before setupKFMR):', {

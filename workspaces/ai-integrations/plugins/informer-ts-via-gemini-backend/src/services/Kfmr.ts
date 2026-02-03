@@ -641,6 +641,7 @@ export interface ModelServer {
   description: string;
   tags: string[];
   api: ModelServerAPI;
+  authentication?: boolean;
 }
 
 export interface ModelCatalog {
@@ -669,10 +670,22 @@ export async function callBackstagePrinters(
   mas: ModelArtifact[],
   kfmrIS: KFMRInferenceService | null,
   kserveIS: KServeInferenceService | null,
+  authentication: boolean = false,
 ): Promise<ModelCatalog> {
-  console.log(`callBackstagePrinters: rm=${rm.name}, mv=${mv.name}`);
+  console.log(
+    `callBackstagePrinters: rm=${rm.name}, mv=${mv.name}, authentication=${authentication}`,
+  );
 
-  return generateModelCatalog(owner, lifecycle, rm, mv, mas, kfmrIS, kserveIS);
+  return generateModelCatalog(
+    owner,
+    lifecycle,
+    rm,
+    mv,
+    mas,
+    kfmrIS,
+    kserveIS,
+    authentication,
+  );
 }
 
 // Generate model catalog
@@ -685,6 +698,7 @@ function generateModelCatalog(
   mas: ModelArtifact[],
   kfmrIS: KFMRInferenceService | null,
   kserveIS: KServeInferenceService | null,
+  authentication: boolean,
 ): ModelCatalog {
   const model: Model = {
     name: `${sanitizeName(rm.name)}-${sanitizeModelVersion(mv.name)}`,
@@ -709,6 +723,7 @@ function generateModelCatalog(
       url: '',
       spec: 'TBD',
     },
+    authentication: authentication,
   };
 
   if (kfmrIS !== null) {
