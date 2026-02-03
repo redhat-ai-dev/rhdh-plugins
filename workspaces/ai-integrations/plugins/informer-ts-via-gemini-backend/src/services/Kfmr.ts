@@ -667,19 +667,12 @@ export async function callBackstagePrinters(
   rm: RegisteredModel,
   mv: ModelVersion,
   mas: ModelArtifact[],
-  // kfmrIS: KFMRInferenceService | null,
+  kfmrIS: KFMRInferenceService | null,
   kserveIS: KServeInferenceService | null,
 ): Promise<ModelCatalog> {
   console.log(`callBackstagePrinters: rm=${rm.name}, mv=${mv.name}`);
 
-  return generateModelCatalog(
-    owner,
-    lifecycle,
-    rm,
-    mv,
-    mas,
-    /* kfmrIS,*/ kserveIS,
-  );
+  return generateModelCatalog(owner, lifecycle, rm, mv, mas, kfmrIS, kserveIS);
 }
 
 // Generate model catalog
@@ -690,7 +683,7 @@ function generateModelCatalog(
   rm: RegisteredModel,
   mv: ModelVersion,
   mas: ModelArtifact[],
-  // kfmrIS: KFMRInferenceService | null,
+  kfmrIS: KFMRInferenceService | null,
   kserveIS: KServeInferenceService | null,
 ): ModelCatalog {
   const model: Model = {
@@ -705,21 +698,31 @@ function generateModelCatalog(
     },
   };
 
-  const modelServer: ModelServer | null = kserveIS
-    ? {
-        name: sanitizeName(kserveIS.metadata.name),
-        owner: getOwner(owner, rm),
-        lifecycle: getLifecycle(lifecycle, mv, rm),
-        description: `${rm.description || ''}\n${mv.description || ''}`,
-        tags: buildTags(rm, mv, mas),
-        api: {
-          type: 'openapi',
-          url: kserveIS.status?.url || kserveIS.status?.address?.url || '',
-          spec: 'TBD',
-        },
-      }
-    : null;
+  const modelServer: ModelServer = {
+    name: '',
+    owner: getOwner(owner, rm),
+    lifecycle: getLifecycle(lifecycle, mv, rm),
+    description: `${rm.description || ''}\n${mv.description || ''}`,
+    tags: buildTags(rm, mv, mas),
+    api: {
+      type: 'openapi',
+      url: '',
+      spec: 'TBD',
+    },
+  };
 
+  if (kfmrIS !== null) {
+    if (kfmrIS.name !== null) {
+      modelServer.name = sanitizeName(kfmrIS.name as string);
+    }
+  }
+  if (kserveIS !== null) {
+    if (modelServer.name.length === 0) {
+      modelServer.name = sanitizeName(kserveIS.metadata.name);
+    }
+    modelServer.api.url =
+      kserveIS.status?.url || kserveIS.status?.address?.url || '';
+  }
   return {
     models: [model],
     modelServers: modelServer ? [modelServer] : [],

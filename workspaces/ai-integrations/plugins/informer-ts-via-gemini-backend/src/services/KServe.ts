@@ -172,75 +172,6 @@ function getDescription(is: KServeInferenceService): string {
   return `KServe instance ${is.metadata.namespace}:${is.metadata.name}`;
 }
 
-// Get links from InferenceService - kserve.go line 64
-function getLinks(is: KServeInferenceService): Array<{
-  url: string;
-  title: string;
-  type: string;
-  icon: string;
-}> {
-  const links: Array<{
-    url: string;
-    title: string;
-    type: string;
-    icon: string;
-  }> = [];
-
-  if (!is) {
-    return links;
-  }
-
-  // Main URL
-  if (is.status?.url) {
-    links.push({
-      url: is.status.url.toString(),
-      title: 'API URL',
-      type: 'website',
-      icon: 'web-asset',
-    });
-  }
-
-  // Component URLs
-  if (is.status?.components) {
-    for (const [componentType, componentStatus] of Object.entries(
-      is.status.components,
-    )) {
-      if (componentStatus.url) {
-        links.push({
-          url: `${componentStatus.url.toString()}/docs`,
-          title: `${componentType} FastAPI URL`,
-          icon: 'web-asset',
-          type: 'website',
-        });
-        links.push({
-          url: componentStatus.url.toString(),
-          title: `${componentType} model serving URL`,
-          icon: 'web-asset',
-          type: 'website',
-        });
-      }
-      if (componentStatus.restURL) {
-        links.push({
-          url: componentStatus.restURL.toString(),
-          title: `${componentType} REST model serving URL`,
-          icon: 'web-asset',
-          type: 'website',
-        });
-      }
-      if (componentStatus.grpcURL) {
-        links.push({
-          url: componentStatus.grpcURL.toString(),
-          title: `${componentType} GRPC model serving URL`,
-          icon: 'web-asset',
-          type: 'website',
-        });
-      }
-    }
-  }
-
-  return links;
-}
-
 // Get tags from predictor spec - kserve.go line 113
 function getTags(is: KServeInferenceService): string[] {
   const tags: string[] = [];
@@ -334,16 +265,15 @@ function generateModelCatalog(
   lifecycle: string,
   is: KServeInferenceService,
 ): KServeModelCatalog {
-  const name = `${sanitizeName(is.metadata.namespace)}-${sanitizeName(
-    is.metadata.name,
-  )}`;
+  const name = `${sanitizeName(getName(is))}`;
 
   // Get property values with fallbacks
   const ownerValue =
     getStringPropVal(PropertyKeys.Owner, is) || sanitizeName(owner);
   const lifecycleValue =
     getStringPropVal(PropertyKeys.Lifecycle, is) || lifecycle;
-  const description = getStringPropVal(PropertyKeys.DescriptionKey, is) || '';
+  const description =
+    getStringPropVal(PropertyKeys.DescriptionKey, is) || getDescription(is);
   const techdocsUrl = getStringPropVal(PropertyKeys.TechDocsKey, is);
 
   // Build model object (kserve.go line 646-674)
@@ -393,4 +323,4 @@ function generateModelCatalog(
 }
 
 // Export helper functions that may be needed
-export { getName, getDescription, getTags, getLinks };
+export { getName, getDescription, getTags };

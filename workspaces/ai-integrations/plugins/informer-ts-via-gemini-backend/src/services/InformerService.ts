@@ -17,13 +17,15 @@
 import * as k8s from '@kubernetes/client-node';
 import {
   callBackstagePrinters,
-  type ModelCatalog,
-  setupKFMR,
-  loopOverKFMR,
   getKubeFlowInferenceServicesForModelVersion,
-  sanitizeName as kfmrSanitizeName,
-  type KFMRClient as KfmrClientType,
   InferenceServiceState as KFMRInferenceServiceState,
+  type KFMRClient as KfmrClientType,
+  type KFMRInferenceService as KfmrInferenceServiceType,
+  type KServeInferenceService,
+  loopOverKFMR,
+  type ModelCatalog,
+  sanitizeName as kfmrSanitizeName,
+  setupKFMR,
 } from './Kfmr';
 import {
   callBackstagePrinters as callKServeBackstagePrinters,
@@ -174,7 +176,7 @@ interface KFMRInferenceService {
   registeredModelId?: string;
   modelVersionId?: string;
   servingEnvironmentId?: string;
-  desiredState?: string;
+  desiredState?: KFMRInferenceServiceState;
   runtime?: string;
   customProperties?: { [key: string]: any };
 }
@@ -459,8 +461,8 @@ async function processKFMR(
                 rm,
                 mv,
                 mas,
-                // null,
-                is,
+                null,
+                is as KServeInferenceService,
               );
               console.log(
                 `processKFMR: Generated catalog data with ${catalogData.models.length} models and ${catalogData.modelServers.length} model servers`,
@@ -615,8 +617,8 @@ async function processKFMR(
               rm,
               mv,
               mas,
-              // kfmrIS,
-              is,
+              kfmrIS as KfmrInferenceServiceType,
+              is as KServeInferenceService,
             );
             console.log(
               `processKFMR: Generated catalog data with ${catalogData.models.length} models and ${catalogData.modelServers.length} model servers`,
@@ -922,7 +924,7 @@ async function innerStartCallBackstagePrinters(
   kfmr: KfmrClientType,
   rm: RegisteredModel,
   mv: ModelVersion,
-  _kfmrIS: KFMRInferenceService | null, // TODO: Pass to callBackstagePrinters when implemented
+  kfmrIS: KFMRInferenceService | null,
   kserveIS: InferenceService | null,
   maa: ModelArtifact[],
   replacer: (str: string) => string,
@@ -937,7 +939,8 @@ async function innerStartCallBackstagePrinters(
     rm,
     mv,
     maa,
-    kserveIS,
+    kfmrIS as KfmrInferenceServiceType | null,
+    kserveIS as KServeInferenceService | null,
   );
 
   // Get model card if catalog URL exists (Go line 859-870)
@@ -960,7 +963,6 @@ async function innerStartCallBackstagePrinters(
           break;
         } catch (error) {
           console.error('innerStart: error getting model card:', error);
-          continue;
         }
       }
     }
@@ -1172,7 +1174,6 @@ async function innerStart(
       }
     } catch (error) {
       console.error(`innerStart: err looping over KFMR ${registryKey}:`, error);
-      continue;
     }
   }
 
@@ -1397,7 +1398,8 @@ export const setupInformer = async () => {
     console.log(
       `Starting background polling every ${pollingInterval / 1000} seconds`,
     );
-    const pollingTimer = setInterval(async () => {
+    // Store the timer in case we need to stop it later
+    (config.informer as any).__pollingTimer = setInterval(async () => {
       try {
         console.log('Background polling: Calling innerStart');
         await innerStart(client, /* coreClient,*/ config);
@@ -1405,9 +1407,6 @@ export const setupInformer = async () => {
         console.error('Background polling: Error during innerStart:', error);
       }
     }, pollingInterval);
-
-    // Store the timer in case we need to stop it later
-    (config.informer as any).__pollingTimer = pollingTimer;
   }
 
   return config.informer;
