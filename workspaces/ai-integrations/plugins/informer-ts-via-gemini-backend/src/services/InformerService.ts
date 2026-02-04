@@ -219,7 +219,6 @@ export interface ReconcilerConfig {
   kfmrClients: Map<string, KFMRClient>; // KFMR clients keyed by registry identifier
   kfmrRoutes: Map<string, Route>; // KFMR routes keyed by registry identifier
   kfmrCatalogRoute?: Route; // KFMR catalog route
-  storageURL: string;
   defaultLifecycle: string;
   defaultOwner: string;
   k8sToken?: string; // Kubernetes authentication token
@@ -1369,7 +1368,6 @@ export const setupInformer = async () => {
     kfmrClients: new Map(),
     kfmrRoutes: new Map(),
     kfmrCatalogRoute: undefined,
-    storageURL: process.env.STORAGE_URL || 'http://localhost:7070',
     defaultLifecycle: process.env.LIFECYCLE || 'production',
     defaultOwner: process.env.OWNER || 'default-owner',
     k8sToken: k8sToken,
@@ -1378,7 +1376,6 @@ export const setupInformer = async () => {
   };
 
   console.log('Reconciler configuration (before setupKFMR):', {
-    storageURL: config.storageURL,
     defaultLifecycle: config.defaultLifecycle,
     defaultOwner: config.defaultOwner,
     kfmrClients: config.kfmrClients.size,

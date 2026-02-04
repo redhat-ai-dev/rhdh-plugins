@@ -249,7 +249,7 @@ export async function setupKFMR(
     }
 
     // Create the KFMRClient instance
-    const kfmrClient = {
+    const kfmrClient: KFMRClient = {
       rootRegistryURL,
       rootCatalogURL,
       token: kfmrToken,
