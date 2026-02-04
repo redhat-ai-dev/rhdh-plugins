@@ -38,6 +38,9 @@
     "url": "https://github.com/redhat-developer/rhdh-plugins",
     "directory": "workspaces/ai-integrations"
   },
+  "dependencies": {
+    "@redhat-ai-dev/model-catalog-types": "^1.1.0"
+  },
   "devDependencies": {
     "@backstage/cli": "^0.31.0",
     "@backstage/e2e-test-utils": "^0.1.1",

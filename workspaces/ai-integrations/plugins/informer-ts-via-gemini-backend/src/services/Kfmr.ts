@@ -16,7 +16,6 @@
 
 // Converted from kfmr.go in model-catalog-bridge
 
-import type { ReconcilerConfig, Route } from './InformerService';
 import {
   type ModelCatalog,
   type Model,
@@ -25,7 +24,29 @@ import {
   Type as APIType,
 } from '@redhat-ai-dev/model-catalog-types';
 
-import { route_group, route_version, route_plural } from './InformerService';
+import {
+  type ReconcilerConfig,
+  type Route,
+  type RegisteredModel,
+  type RegisteredModelList,
+  type ModelVersion,
+  type ModelVersionList,
+  type ModelArtifact,
+  type ModelArtifactList,
+  type KFMRInferenceService,
+  type InferenceServiceList,
+  type ServingEnvironment,
+  type CatalogModel,
+  type KServeInferenceService,
+  type MetadataValue,
+  type KFMRClient,
+  type LoopOverKFMRResult,
+  RegisteredModelState,
+  ModelVersionState,
+  route_group,
+  route_version,
+  route_plural,
+} from './types';
 
 // Constants (from kfmr.go line 26-30)
 const TAG_REGEXP = '^[a-z0-9:+#]+(\\-[a-z0-9:+#]+)*$';
@@ -384,135 +405,29 @@ export const PropertyKeys = {
   DescriptionKey: 'description',
 };
 
-// Metadata value interface (from openapi package)
-interface MetadataValue {
-  metadataStringValue?: {
-    stringValue: string;
-  };
-  metadataIntValue?: {
-    intValue: number;
-  };
-  metadataBoolValue?: {
-    boolValue: boolean;
-  };
-  metadataDoubleValue?: {
-    doubleValue: number;
-  };
-}
+// Re-export types from types.ts for backwards compatibility
+export type {
+  RegisteredModel,
+  RegisteredModelList,
+  ModelVersion,
+  ModelVersionList,
+  ModelArtifact,
+  ModelArtifactList,
+  KFMRInferenceService,
+  InferenceServiceList,
+  ServingEnvironment,
+  CatalogModel,
+  KServeInferenceService,
+  MetadataValue,
+  KFMRClient,
+  LoopOverKFMRResult,
+} from './types';
 
-// Model state enums
-export enum RegisteredModelState {
-  Live = 'LIVE',
-  Archived = 'ARCHIVED',
-}
-
-export enum ModelVersionState {
-  Live = 'LIVE',
-  Archived = 'ARCHIVED',
-}
-
-export enum InferenceServiceState {
-  Deployed = 'DEPLOYED',
-  Undeployed = 'UNDEPLOYED',
-}
-
-// These interfaces are imported from InformerService.ts
-export interface RegisteredModel {
-  id?: string;
-  name: string;
-  lastUpdateTimeSinceEpoch?: string;
-  description?: string;
-  owner?: string;
-  state?: RegisteredModelState;
-  customProperties?: { [key: string]: MetadataValue };
-}
-
-export interface RegisteredModelList {
-  items: RegisteredModel[];
-}
-
-export interface ModelVersion {
-  id?: string;
-  name: string;
-  lastUpdateTimeSinceEpoch?: string;
-  registeredModelId?: string;
-  description?: string;
-  state?: ModelVersionState;
-  customProperties?: { [key: string]: MetadataValue };
-}
-
-export interface ModelVersionList {
-  items: ModelVersion[];
-}
-
-export interface ModelArtifact {
-  id?: string;
-  name?: string;
-  modelVersionId?: string;
-  modelSourceClass?: string;
-  modelSourceGroup?: string;
-  modelSourceName?: string;
-  uri?: string;
-  description?: string;
-  customProperties?: { [key: string]: MetadataValue };
-}
-
-export interface ModelArtifactList {
-  items: ModelArtifact[];
-}
-
-export interface KFMRInferenceService {
-  id?: string;
-  name?: string;
-  registeredModelId?: string;
-  modelVersionId?: string;
-  servingEnvironmentId?: string;
-  desiredState?: InferenceServiceState;
-  runtime?: string;
-  customProperties?: { [key: string]: MetadataValue };
-}
-
-export interface InferenceServiceList {
-  items: KFMRInferenceService[];
-}
-
-export interface ServingEnvironment {
-  id?: string;
-  name?: string;
-  description?: string;
-  customProperties?: { [key: string]: MetadataValue };
-}
-
-// CatalogModel interface (from catalog openapi package)
-export interface CatalogModel {
-  id?: string;
-  name?: string;
-  description?: string;
-  readme?: string;
-  sourceId?: string;
-  repositoryName?: string;
-}
-
-export interface KServeInferenceService {
-  metadata: {
-    name: string;
-    namespace: string;
-    uid?: string;
-    labels?: { [key: string]: string };
-    annotations?: { [key: string]: string };
-  };
-  spec: any;
-  status?: {
-    conditions?: Array<{
-      type: string;
-      status: string;
-    }>;
-    url?: string;
-    address?: {
-      url: string;
-    };
-  };
-}
+export {
+  RegisteredModelState,
+  ModelVersionState,
+  InferenceServiceState,
+} from './types';
 
 // Helper function: Extract tags from custom properties
 // Converted from getTagsFromCustomProps (kfmr.go line 142)
@@ -778,33 +693,6 @@ function buildTags(
   }
 
   return Object.values(tagsMap);
-}
-
-// KFMR Client interface (for use with helper functions)
-export interface KFMRClient {
-  rootRegistryURL: string;
-  rootCatalogURL?: string;
-  token: string;
-  listRegisteredModels(): Promise<RegisteredModel[]>;
-  listInferenceServices(): Promise<KFMRInferenceService[]>;
-  listModelVersions(registeredModelId: string): Promise<ModelVersion[]>;
-  listModelArtifacts(modelVersionId: string): Promise<ModelArtifact[]>;
-  getServingEnvironment(
-    servingEnvironmentId: string,
-  ): Promise<ServingEnvironment>;
-  getModelVersion(modelVersionId: string): Promise<ModelVersion>;
-  getModelCard(
-    sourceId: string,
-    repositoryName: string,
-    modelName: string,
-  ): Promise<string | undefined>;
-}
-
-// Result type for loopOverKFMR
-export interface LoopOverKFMRResult {
-  registeredModels: RegisteredModel[];
-  modelVersionsMap: Map<string, ModelVersion[]>;
-  modelArtifactsMap: Map<string, Map<string, ModelArtifact[]>>;
 }
 
 // Helper function: callKubeflowREST

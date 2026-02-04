@@ -16,14 +16,22 @@
 
 import * as k8s from '@kubernetes/client-node';
 import {
+  type ReconcilerConfig,
+  type InferenceService,
+  type RegisteredModel,
+  type ModelVersion,
+  type ModelArtifact,
+  type KFMRInferenceService,
+  type ServingEnvironment,
+  type KServeInferenceService,
+  KFMRClient,
+  InferenceServiceState,
+} from './types';
+import type { ModelCatalog } from '@redhat-ai-dev/model-catalog-types';
+import {
   callBackstagePrinters,
   getKubeFlowInferenceServicesForModelVersion,
-  InferenceServiceState as KFMRInferenceServiceState,
-  type KFMRClient as KfmrClientType,
-  type KFMRInferenceService as KfmrInferenceServiceType,
-  type KServeInferenceService,
   loopOverKFMR,
-  type ModelCatalog,
   sanitizeName as kfmrSanitizeName,
   setupKFMR,
 } from './Kfmr';
@@ -33,9 +41,8 @@ const inference_service_group = 'serving.kserve.io';
 const inference_service_version = 'v1beta1';
 const inference_service_plural = 'inferenceservices';
 
-export const route_group = 'route.openshift.io';
-export const route_version = 'v1';
-export const route_plural = 'routes';
+// Re-export route constants for backwards compatibility
+export { route_group, route_version, route_plural } from './types';
 
 // Model card metadata interface (from server.go line 30-35)
 interface ModelCardMetadata {
@@ -79,131 +86,14 @@ enum NormalizerType {
   KServeNormalizer = 'kserve',
 }
 
-// Define the type for the InferenceService object with detailed status
-interface Condition {
-  type: string;
-  status: string;
-  lastTransitionTime?: string;
-  reason?: string;
-  message?: string;
-}
-
-interface ModelStatus {
-  transitionStatus?: string;
-  states?: any;
-}
-
-interface InferenceServiceStatus {
-  conditions?: Condition[];
-  modelStatus?: ModelStatus;
-  url?: string;
-  address?: {
-    url: string;
-  };
-}
-
-interface InferenceService {
-  apiVersion: string;
-  kind: string;
-  metadata: {
-    name: string;
-    namespace: string;
-    uid?: string;
-    labels?: { [key: string]: string };
-    annotations?: { [key: string]: string };
-  };
-  spec: any;
-  status?: InferenceServiceStatus;
-}
-
-export interface RouteIngress {
-  host: string;
-}
-
-export interface RouteStatus {
-  ingress?: RouteIngress[];
-}
-
-export interface Route {
-  apiVersion: string;
-  kind: string;
-  metadata: {
-    name: string;
-    namespace: string;
-    uid?: string;
-    labels?: { [key: string]: string };
-    annotations?: { [key: string]: string };
-  };
-  spec: any;
-  status?: RouteStatus;
-}
-
-// KFMR (KubeFlow Model Registry) related interfaces
-interface RegisteredModel {
-  id?: string;
-  name: string;
-  lastUpdateTimeSinceEpoch?: string;
-  description?: string;
-  customProperties?: { [key: string]: any };
-}
-
-interface ModelVersion {
-  id?: string;
-  name: string;
-  lastUpdateTimeSinceEpoch?: string;
-  registeredModelId?: string;
-  description?: string;
-  customProperties?: { [key: string]: any };
-}
-
-interface ModelArtifact {
-  id?: string;
-  name?: string;
-  modelVersionId?: string;
-  modelSourceClass?: string;
-  modelSourceGroup?: string;
-  modelSourceName?: string;
-  uri?: string;
-  customProperties?: { [key: string]: any };
-}
-
-interface KFMRInferenceService {
-  id?: string;
-  name?: string;
-  registeredModelId?: string;
-  modelVersionId?: string;
-  servingEnvironmentId?: string;
-  desiredState?: KFMRInferenceServiceState;
-  runtime?: string;
-  customProperties?: { [key: string]: any };
-}
-
-interface ServingEnvironment {
-  id?: string;
-  name?: string;
-  description?: string;
-  customProperties?: { [key: string]: any };
-}
-
-// KFMR Client wrapper interface
-interface KFMRClient {
-  rootRegistryURL: string;
-  rootCatalogURL?: string;
-  token: string;
-  listRegisteredModels(): Promise<RegisteredModel[]>;
-  listInferenceServices(): Promise<KFMRInferenceService[]>;
-  listModelVersions(registeredModelId: string): Promise<ModelVersion[]>;
-  listModelArtifacts(modelVersionId: string): Promise<ModelArtifact[]>;
-  getServingEnvironment(
-    servingEnvironmentId: string,
-  ): Promise<ServingEnvironment>;
-  getModelVersion(modelVersionId: string): Promise<ModelVersion>;
-  getModelCard(
-    modelSourceClass: string,
-    modelSourceGroup: string,
-    modelSourceName: string,
-  ): Promise<string | undefined>;
-}
+// Types are imported from ./types to avoid circular dependencies
+// Re-export for backwards compatibility
+export type {
+  Route,
+  RouteIngress,
+  RouteStatus,
+  ReconcilerConfig,
+} from './types';
 
 // Result type for processKFMR
 interface ProcessKFMRResult {
@@ -212,19 +102,6 @@ interface ProcessKFMRResult {
   modelCardKey: string;
   modelCard?: string;
   catalogData: ModelCatalog;
-}
-
-// Configuration (these would typically come from environment variables)
-export interface ReconcilerConfig {
-  kfmrClients: Map<string, KFMRClient>; // KFMR clients keyed by registry identifier
-  kfmrRoutes: Map<string, Route>; // KFMR routes keyed by registry identifier
-  kfmrCatalogRoute?: Route; // KFMR catalog route
-  defaultLifecycle: string;
-  defaultOwner: string;
-  k8sToken?: string; // Kubernetes authentication token
-  routeClient?: k8s.CustomObjectsApi; // OpenShift route client
-  coreClient?: k8s.CoreV1Api; // Kubernetes core API client for ServiceAccounts
-  informer?: k8s.Informer<InferenceService> & k8s.ObjectCache<InferenceService>; // KServe InferenceService informer
 }
 
 // Helper function to sanitize names (matching Go util.SanitizeName)
@@ -678,7 +555,7 @@ async function processKFMR(
               rm,
               mv,
               mas,
-              kfmrIS as KfmrInferenceServiceType,
+              kfmrIS as KFMRInferenceService,
               is as KServeInferenceService,
               authentication,
             );
@@ -997,7 +874,7 @@ async function processModelCatalog(
 // Helper function to call backstage printers and process model catalog
 // Converted from innerStartCallBackstagePrinters (controller.go line 839-878)
 async function innerStartCallBackstagePrinters(
-  kfmr: KfmrClientType,
+  kfmr: KFMRClient,
   rm: RegisteredModel,
   mv: ModelVersion,
   kfmrIS: KFMRInferenceService | null,
@@ -1016,7 +893,7 @@ async function innerStartCallBackstagePrinters(
     rm,
     mv,
     maa,
-    kfmrIS as KfmrInferenceServiceType | null,
+    kfmrIS as KFMRInferenceService | null,
     kserveIS as KServeInferenceService | null,
     authentication,
   );
@@ -1078,7 +955,7 @@ async function innerStart(
     try {
       // Call loopOverKFMR to get registered models, model versions, and model artifacts (Go line 664)
       const { registeredModels, modelVersionsMap, modelArtifactsMap } =
-        await loopOverKFMR(kfmr as KfmrClientType);
+        await loopOverKFMR(kfmr as KFMRClient);
 
       console.log(
         `innerStart: len rms ${registeredModels.length} mvs ${modelVersionsMap.size} mas ${modelArtifactsMap.size}`,
@@ -1136,7 +1013,7 @@ async function innerStart(
           let mvISL: KFMRInferenceService[] = [];
           try {
             mvISL = await getKubeFlowInferenceServicesForModelVersion(
-              kfmr as KfmrClientType,
+              kfmr as KFMRClient,
               mv,
             );
           } catch (error) {
@@ -1152,7 +1029,7 @@ async function innerStart(
             try {
               // No KServe InferenceService, so authentication is false
               await innerStartCallBackstagePrinters(
-                kfmr as KfmrClientType,
+                kfmr as KFMRClient,
                 rm,
                 mv,
                 null,
@@ -1175,7 +1052,7 @@ async function innerStart(
           // Process each KubeFlow inference service (Go line 724)
           for (const kis of mvISL) {
             // Check if deployed (Go line 725-732)
-            if (kis.desiredState !== KFMRInferenceServiceState.Deployed) {
+            if (kis.desiredState !== InferenceServiceState.Deployed) {
               console.log(
                 `innerStart: kubeflow infsvc ${kis.name} id ${kis.id} not deployed`,
               );
@@ -1214,7 +1091,7 @@ async function innerStart(
             // Call backstage printers with both KubeFlow and KServe (Go line 759-776)
             try {
               await innerStartCallBackstagePrinters(
-                kfmr as KfmrClientType,
+                kfmr as KFMRClient,
                 rm,
                 mv,
                 kis,
@@ -1242,7 +1119,7 @@ async function innerStart(
             try {
               // No KServe InferenceService, so authentication is false
               await innerStartCallBackstagePrinters(
-                kfmr as KfmrClientType,
+                kfmr as KFMRClient,
                 rm,
                 mv,
                 null,
